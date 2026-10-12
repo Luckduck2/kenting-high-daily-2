@@ -1,0 +1,592 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, apikey, content-type, x-client-info",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Content-Type": "application/json; charset=utf-8",
+};
+
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const initialMasterPassword =
+  Deno.env.get("INITIAL_MASTER_PASSWORD") || "";
+
+const initialSubPasswords = (
+  Deno.env.get("INITIAL_SUB_PASSWORDS") || ""
+)
+  .split(",")
+  .map((x) => x.trim())
+  .filter(Boolean);
+
+const db = createClient(supabaseUrl, serviceRoleKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  },
+});
+
+function reply(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: corsHeaders,
+  });
+}
+
+function randomBytes(n: number) {
+  const bytes = new Uint8Array(n);
+  crypto.getRandomValues(bytes);
+  return bytes;
+}
+
+function toB64(bytes: Uint8Array) {
+  return btoa(String.fromCharCode(...bytes));
+}
+
+async function hashPassword(password: string, saltB64?: string) {
+  const salt = saltB64
+    ? Uint8Array.from(atob(saltB64), (c) => c.charCodeAt(0))
+    : randomBytes(16);
+
+  const material = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(password),
+    "PBKDF2",
+    false,
+    ["deriveBits"],
+  );
+
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      salt,
+      iterations: 210000,
+      hash: "SHA-256",
+    },
+    material,
+    256,
+  );
+
+  return {
+    salt: toB64(salt),
+    hash: toB64(new Uint8Array(bits)),
+  };
+}
+
+async function matches(
+  password: string,
+  credential: { salt: string; hash: string },
+) {
+  if (!password || !credential?.salt || !credential?.hash) {
+    return false;
+  }
+
+  const candidate = await hashPassword(password, credential.salt);
+  return candidate.hash === credential.hash;
+}
+
+async function createCredential(
+  password: string,
+  label: string,
+) {
+  const result = await hashPassword(password);
+
+  return {
+    id: crypto.randomUUID(),
+    label,
+    salt: result.salt,
+    hash: result.hash,
+  };
+}
+
+async function getRow() {
+  const { data, error } = await db
+    .from("kenting_news_cloud_state")
+    .select("state, updated_at")
+    .eq("id", true)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
+async function ensureState(bootstrap: any) {
+  let row = await getRow();
+
+  if (row) return row;
+
+  if (!initialMasterPassword) {
+    throw new Error(
+      "請先設定 INITIAL_MASTER_PASSWORD 環境變數。",
+    );
+  }
+
+  const master = await hashPassword(initialMasterPassword);
+  const subPasswords = [];
+
+  for (let i = 0; i < initialSubPasswords.length; i++) {
+    subPasswords.push(
+      await createCredential(
+        initialSubPasswords[i],
+        `副密碼 ${i + 1}`,
+      ),
+    );
+  }
+
+  const state = {
+    news: Array.isArray(bootstrap?.news) ? bootstrap.news : [],
+    categories: Array.isArray(bootstrap?.categories)
+      ? bootstrap.categories
+      : ["主頁", "頭條", "經濟", "日常", "國際", "美食", "自媒體"],
+    phone: typeof bootstrap?.phone === "string"
+      ? bootstrap.phone
+      : "",
+    master: {
+      salt: master.salt,
+      hash: master.hash,
+    },
+    subPasswords,
+    comments: {},
+  };
+
+  const { error } = await db
+    .from("kenting_news_cloud_state")
+    .upsert({
+      id: true,
+      state,
+      updated_at: new Date().toISOString(),
+    });
+
+  if (error) throw error;
+
+  row = await getRow();
+  return row;
+}
+
+function publicState(state: any, includeSubPasswords = false) {
+  return {
+    news: Array.isArray(state.news) ? state.news : [],
+    categories: Array.isArray(state.categories)
+      ? state.categories
+      : ["主頁", "頭條", "經濟", "日常", "國際", "美食", "自媒體"],
+    phone: typeof state.phone === "string" ? state.phone : "",
+    subPasswords: includeSubPasswords
+      ? (state.subPasswords || []).map((p: any) => ({
+          id: p.id,
+          label: p.label,
+          accountType: p.accountType === "self_media_creator" ? "self_media_creator" : "official_reporter",
+        }))
+      : [],
+  };
+}
+
+async function saveState(state: any) {
+  const { error } = await db
+    .from("kenting_news_cloud_state")
+    .upsert({
+      id: true,
+      state,
+      updated_at: new Date().toISOString(),
+    });
+
+  if (error) throw error;
+  return await getRow();
+}
+
+async function verify(state: any, password: string) {
+  if (await matches(password, state.master)) return "master";
+  for (const sub of state.subPasswords || []) {
+    if (await matches(password, sub)) return "reporter";
+  }
+  return null;
+}
+
+async function findSubCredential(state: any, password: string) {
+  for (const sub of state.subPasswords || []) {
+    if (await matches(password, sub)) return sub;
+  }
+  return null;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  if (req.method !== "POST") {
+    return reply({ error: "Method not allowed" }, 405);
+  }
+
+  try {
+    // Normal actions use JSON. Media uploads use multipart/form-data so the
+    // browser can send the original file bytes without base64 expansion.
+    let body: any = {};
+    let uploadFile: File | null = null;
+
+    const contentType = req.headers.get("content-type") || "";
+    if (contentType.toLowerCase().includes("multipart/form-data")) {
+      const form = await req.formData();
+      body = {
+        action: String(form.get("action") || ""),
+        password: String(form.get("password") || ""),
+        newsId: String(form.get("newsId") || ""),
+      };
+      const candidate = form.get("file");
+      if (candidate instanceof File) uploadFile = candidate;
+    } else {
+      body = await req.json();
+    }
+
+    const action = String(body.action || "");
+    const row = await ensureState(body.bootstrap);
+    const state = row.state;
+    if (!state.comments || typeof state.comments !== "object" || Array.isArray(state.comments)) {
+      state.comments = {};
+    }
+    const password = String(body.password || "");
+
+    if (action === "public_get") {
+      return reply({
+        state: publicState(state),
+        revision: row.updated_at,
+      });
+    }
+
+    if (action === "login") {
+      const role = await verify(state, password);
+
+      if (!role) {
+        return reply({
+          error: "密碼錯誤，請確認管理員或記者密碼。",
+        }, 401);
+      }
+
+      const matchedSub = role === "reporter" ? await findSubCredential(state, password) : null;
+      return reply({
+        role,
+        accountType: matchedSub?.accountType === "self_media_creator" ? "self_media_creator" : "official_reporter",
+        subId: matchedSub?.id || "",
+        state: publicState(state, role === "master"),
+        revision: row.updated_at,
+      });
+    }
+
+    // 公開留言功能：讀者不需要帳號或登入。
+    if (action === "comments_list" || action === "get_comments") {
+      const articleId = String(body.articleId || "").slice(0, 160);
+      if (!articleId) return reply({ error: "缺少文章識別碼。" }, 400);
+      // 不要求文章一定存在於 state.news：
+      // 前端可能顯示預設範例或本機文章，而這些文章未必已同步進雲端新聞清單。
+      // 以穩定的 articleId 作為留言分組鍵，沒有留言時回傳空陣列。
+      const comments = Array.isArray(state.comments[articleId]) ? state.comments[articleId] : [];
+      return reply({ ok: true, comments });
+    }
+
+    if (action === "comments_add" || action === "add_comment") {
+      const articleId = String(body.articleId || "").trim().slice(0, 160);
+      const author = String(body.author || "").trim();
+      const content = String(body.content || "").trim();
+      if (!articleId) return reply({ error: "缺少文章識別碼。" }, 400);
+      if (!author || author.length > 40) return reply({ error: "署名必填，且最多 40 字。" }, 400);
+      if (!content || content.length > 2000) return reply({ error: "留言必填，且最多 2000 字。" }, 400);
+      // 不再用 state.news 驗證文章存在與否，避免前端顯示的文章 ID
+      // 未同步進雲端新聞陣列時，留言被錯誤拒絕。
+      const comments = Array.isArray(state.comments[articleId]) ? state.comments[articleId] : [];
+      if (comments.length >= 5000) return reply({ error: "此文章留言數已達上限。" }, 429);
+      const comment = {
+        id: crypto.randomUUID(),
+        author,
+        content,
+        date: new Date().toISOString(),
+      };
+      state.comments[articleId] = [...comments, comment];
+      const updated = await saveState(state);
+      return reply({ ok: true, comment, revision: updated.updated_at });
+    }
+
+    const role = await verify(state, password);
+    const matchedSub = role === "reporter" ? await findSubCredential(state, password) : null;
+
+    if (!role) {
+      return reply({
+        error: "驗證失敗，請重新登入。",
+      }, 401);
+    }
+
+    if (action === "upload_media") {
+      if (!uploadFile) {
+        return reply({ error: "沒有收到媒體檔案。" }, 400);
+      }
+
+      // Supabase Free projects have a 50 MB upload limit per file.
+      if (uploadFile.size <= 0 || uploadFile.size > 50 * 1024 * 1024) {
+        return reply({ error: "單一檔案必須大於 0 且不得超過 50 MB。" }, 413);
+      }
+
+      const rawNewsId = String(body.newsId || "news");
+      const safeNewsId = rawNewsId.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 80) || "news";
+      const rawName = uploadFile.name || "media";
+      const safeName = rawName.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120) || "media";
+      const objectPath = `${safeNewsId}/${crypto.randomUUID()}-${safeName}`;
+      const mimeType = uploadFile.type || "application/octet-stream";
+
+      const { error: uploadError } = await db.storage
+        .from("news-media")
+        .upload(objectPath, uploadFile, {
+          contentType: mimeType,
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error("Media upload failed:", uploadError);
+        return reply({ error: `媒體上傳失敗：${uploadError.message}` }, 500);
+      }
+
+      const { data: publicData } = db.storage
+        .from("news-media")
+        .getPublicUrl(objectPath);
+
+      return reply({
+        ok: true,
+        path: objectPath,
+        url: publicData.publicUrl,
+        name: rawName,
+        type: mimeType,
+        size: uploadFile.size,
+      });
+    }
+
+    if (action === "save_news") {
+      if (!Array.isArray(body.news)) {
+        return reply({ error: "新聞資料格式不正確。" }, 400);
+      }
+
+      const incomingNews = body.news;
+
+      if (role === "master") {
+        // 主密碼管理員可管理全部文章。
+        state.news = incomingNews;
+      } else {
+        if (!matchedSub) {
+          return reply({ error: "無法確認副密碼帳號身分。" }, 403);
+        }
+
+        const existingNews = Array.isArray(state.news) ? state.news : [];
+        const existingById = new Map(existingNews.map((item: any) => [String(item.id), item]));
+        const incomingById = new Map(incomingNews.map((item: any) => [String(item.id), item]));
+
+        const isOwnedByThisSub = (item: any) =>
+          String(item?.createdBySubId || "") === String(matchedSub.id);
+
+        // 若副密碼提交了他人文章的修改，直接拒絕，不採信前端隱藏欄位。
+        for (const current of existingNews) {
+          const id = String(current?.id ?? "");
+          const submitted = incomingById.get(id);
+          if (!isOwnedByThisSub(current) && submitted !== undefined &&
+              JSON.stringify(submitted) !== JSON.stringify(current)) {
+            return reply({ error: "權限不足：副密碼只能修改自己發布的文章。" }, 403);
+          }
+        }
+
+        // 新增的文章必須標記為目前登入副密碼的所有文章。
+        for (const submitted of incomingNews) {
+          const id = String(submitted?.id ?? "");
+          if (!existingById.has(id) && !isOwnedByThisSub(submitted)) {
+            return reply({ error: "權限不足：只能新增並管理自己的文章。" }, 403);
+          }
+        }
+
+        // 以伺服器既有文章為基礎：保留他人文章原樣，只接受自己的新增、修改、刪除。
+        const merged: any[] = [];
+        const handled = new Set<string>();
+        for (const submitted of incomingNews) {
+          const id = String(submitted?.id ?? "");
+          const current = existingById.get(id);
+          if (current) {
+            if (isOwnedByThisSub(current)) {
+              merged.push({ ...submitted, createdBySubId: matchedSub.id });
+            } else {
+              merged.push(current);
+            }
+            handled.add(id);
+          } else {
+            merged.push({ ...submitted, createdBySubId: matchedSub.id });
+            handled.add(id);
+          }
+        }
+        // 被省略的文章只允許在它屬於目前副密碼時刪除。
+        for (const current of existingNews) {
+          const id = String(current?.id ?? "");
+          if (!handled.has(id) && !isOwnedByThisSub(current)) merged.push(current);
+        }
+
+        // 伺服器強制執行自媒體分類與署名帳號歸屬。
+        for (const article of merged) {
+          if (!isOwnedByThisSub(article)) continue;
+          article.createdBySubId = matchedSub.id;
+          if (matchedSub.accountType === "self_media_creator") {
+            article.category = "自媒體";
+            article.publisherType = "self_media_creator";
+            article.isFeatured = false;
+          } else {
+            article.publisherType = "official_reporter";
+          }
+        }
+        state.news = merged;
+      }
+
+      // 無論由誰儲存，都修正既有自媒體文章的分類。
+      for (const article of state.news || []) {
+        const owner = (state.subPasswords || []).find((p: any) =>
+          p.id === article?.createdBySubId
+        );
+        if (owner?.accountType === "self_media_creator") {
+          article.category = "自媒體";
+          article.publisherType = "self_media_creator";
+          article.isFeatured = false;
+        }
+      }
+      if (!Array.isArray(state.categories)) state.categories = [];
+      if (!state.categories.includes("自媒體")) state.categories.push("自媒體");
+
+    } else if (action === "save_categories") {
+      if (role !== "master") {
+        return reply({ error: "只有主密碼管理員可以管理新聞分類。" }, 403);
+      }
+      if (!Array.isArray(body.categories)) {
+        return reply({ error: "分類資料格式不正確。" }, 400);
+      }
+
+      state.categories = body.categories;
+      if (!state.categories.includes("自媒體")) state.categories.push("自媒體");
+
+    } else if (action === "save_phone") {
+      if (role !== "master") {
+        return reply({ error: "只有主密碼管理員可以修改頁尾電話。" }, 403);
+      }
+      state.phone = String(body.phone || "");
+
+    } else if (action === "change_own_sub_password") {
+      if (role !== "reporter" || !matchedSub) {
+        return reply({ error: "只有副密碼使用者可以修改自己的副密碼。" }, 403);
+      }
+      const newPassword = String(body.newPassword || "");
+      if (!newPassword) return reply({ error: "新副密碼不可空白。" }, 400);
+      if (await matches(newPassword, state.master)) return reply({ error: "新副密碼不可與主密碼相同。" }, 409);
+      for (const other of state.subPasswords || []) {
+        if (other.id !== matchedSub.id && await matches(newPassword, other)) {
+          return reply({ error: "這組新副密碼已被其他帳號使用。" }, 409);
+        }
+      }
+      const credential = await hashPassword(newPassword);
+      matchedSub.salt = credential.salt;
+      matchedSub.hash = credential.hash;
+
+    } else if (action === "change_master") {
+      if (role !== "master") {
+        return reply({ error: "只有管理員可以更改主密碼。" }, 403);
+      }
+
+      const newPassword = String(body.newPassword || "");
+
+      if (newPassword.length < 8) {
+        return reply({
+          error: "新主密碼至少需要 8 個字元。",
+        }, 400);
+      }
+
+      const result = await hashPassword(newPassword);
+
+      state.master = {
+        salt: result.salt,
+        hash: result.hash,
+      };
+
+    } else if (action === "add_sub") {
+      const newPassword = String(body.newPassword || "");
+
+      if (!newPassword) {
+        return reply({ error: "副密碼不可空白。" }, 400);
+      }
+
+      if (await verify(state, newPassword)) {
+        return reply({
+          error: "這組密碼已存在，或與主密碼相同。",
+        }, 409);
+      }
+
+      state.subPasswords = state.subPasswords || [];
+
+      state.subPasswords.push(
+        {
+          ...(await createCredential(newPassword, `副密碼 ${state.subPasswords.length + 1}`)),
+          accountType: "official_reporter",
+        },
+      );
+
+    } else if (action === "set_sub_label") {
+      if (role !== "master") {
+        return reply({ error: "只有管理員可以替副密碼命名。" }, 403);
+      }
+      const subId = String(body.subId || "");
+      const label = String(body.label || "").trim();
+      if (!label) return reply({ error: "副密碼名稱不可空白。" }, 400);
+      if (label.length > 40) return reply({ error: "副密碼名稱最多 40 個字元。" }, 400);
+      const sub = (state.subPasswords || []).find((p: any) => p.id === subId);
+      if (!sub) return reply({ error: "找不到指定的副密碼。" }, 404);
+      sub.label = label;
+
+    } else if (action === "set_sub_role") {
+      if (role !== "master") {
+        return reply({ error: "只有管理員可以設定副密碼身分標籤。" }, 403);
+      }
+      const subId = String(body.subId || "");
+      const accountType = String(body.accountType || "");
+      if (!["official_reporter", "self_media_creator"].includes(accountType)) {
+        return reply({ error: "不支援的身分標籤。" }, 400);
+      }
+      const sub = (state.subPasswords || []).find((p: any) => p.id === subId);
+      if (!sub) return reply({ error: "找不到指定的副密碼。" }, 404);
+      sub.accountType = accountType;
+      // Re-categorize articles belonging to this account whenever its role is changed.
+      if (Array.isArray(state.news)) {
+        for (const article of state.news) {
+          if (article?.createdBySubId === subId) {
+            article.publisherType = accountType;
+            if (accountType === "self_media_creator") article.category = "自媒體";
+          }
+        }
+      }
+      if (!Array.isArray(state.categories)) state.categories = [];
+      if (!state.categories.includes("自媒體")) state.categories.push("自媒體");
+
+    } else if (action === "delete_sub") {
+      if (role !== "master") {
+        return reply({ error: "只有管理員可以刪除副密碼。" }, 403);
+      }
+
+      state.subPasswords = (state.subPasswords || []).filter(
+        (p: any) => p.id !== String(body.subId || ""),
+      );
+
+    } else {
+      return reply({ error: "未知的操作。" }, 400);
+    }
+
+    const updated = await saveState(state);
+
+    return reply({
+      ok: true,
+      state: publicState(state, role === "master"),
+      revision: updated.updated_at,
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    return reply({
+      error: error instanceof Error ? error.message : "伺服器錯誤。",
+    }, 500);
+  }
+});

@@ -1,0 +1,2347 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-TW" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>國境之南每日報紙 - Southern Border Daily News</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts CDN -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ocean: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            700: '#0369a1',
+                            900: '#0c4a6e',
+                        }
+                    },
+                    fontFamily: {
+                        serif: ['"Noto Serif TC"', 'serif'],
+                        sans: ['"Noto Sans TC"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .news-paper-border {
+            border-bottom: 3px double #1e293b;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #0369a1;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col">
+
+<div class="bg-slate-900 text-slate-300 px-4 py-2 text-xs flex items-center justify-between border-b border-slate-700 shadow-md sticky top-0 z-40">
+    <div class="flex items-center space-x-2">
+        <div class="flex space-x-1.5 mr-2">
+            <span class="w-3 h-3 bg-red-500 rounded-full inline-block"></span>
+            <span class="w-3 h-3 bg-yellow-500 rounded-full inline-block"></span>
+            <span class="w-3 h-3 bg-green-500 rounded-full inline-block"></span>
+        </div>
+        <button onclick="navigateHome()" class="hover:text-white px-2.5 py-1 rounded bg-slate-800 flex items-center gap-1 transition"><i class="fa-solid fa-house"></i> 首頁</button>
+        <button onclick="refreshPage()" class="hover:text-white px-2.5 py-1 rounded bg-slate-800 flex items-center gap-1 transition"><i class="fa-solid fa-rotate-right"></i> 重整</button>
+    </div>
+
+    
+</div>
+
+<header class="bg-white border-b-2 border-slate-900 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 py-5">
+        <div class="flex flex-col md:flex-row justify-between items-center news-paper-border pb-4">
+            <div class="text-center md:text-left mb-3 md:mb-0">
+                <p class="text-[11px] tracking-widest text-slate-500 font-semibold uppercase">Southern Border Daily Newspaper</p>
+                <h1 class="text-3xl md:text-4xl font-black font-serif tracking-tight text-slate-900 cursor-pointer hover:text-ocean-700 transition" onclick="navigateHome()">
+                    國境之南每日報紙
+                </h1>
+                <p class="text-xs text-ocean-700 font-semibold mt-1">☀️ 陽光 • 湛藍 • 校園真相與活力前線</p>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <button onclick="switchTab('reader')" id="btnTabReader" class="px-5 py-2.5 rounded-xl font-extrabold text-base transition flex items-center space-x-2 bg-ocean-700 hover:bg-ocean-900 text-white shadow-md hover:shadow-lg transform active:scale-95">
+                    <i class="fa-solid fa-newspaper text-lg"></i>
+                    <span>閱讀新聞網</span>
+                </button>
+                <button onclick="switchTab('reporter')" id="btnTabReporter" class="px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center space-x-1.5 bg-slate-200 text-slate-700 hover:bg-slate-300">
+                    <i class="fa-solid fa-pen-nib text-xs"></i>
+                    <span>記者發布稿件</span>
+                </button>
+            </div>
+        </div>
+
+        <nav id="categoryNav" class="flex flex-wrap items-center justify-between pt-3 text-sm font-semibold text-slate-700">
+            <div id="navCategoriesList" class="flex space-x-1 md:space-x-3 overflow-x-auto py-1"></div>
+
+            <div class="relative w-full md:w-64 mt-2 md:mt-0">
+                <input type="text" id="keywordSearch" onkeyup="handleKeywordSearch()" placeholder="搜尋新聞標題或內容..." class="w-full text-xs pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-ocean-500 shadow-sm transition">
+                <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+            </div>
+        </nav>
+    </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
+
+    <!-- View 1: 讀者新聞瀏覽區塊 -->
+    <section id="readerView" class="space-y-8">
+        <div id="searchNotice" class="hidden bg-blue-50 border-l-4 border-ocean-500 p-4 rounded shadow-sm flex justify-between items-center">
+            <div>
+                <p class="text-sm text-ocean-900 font-bold" id="searchNoticeText">搜尋結果</p>
+                <p class="text-xs text-ocean-700">正在顯示符合關鍵字的新聞文章</p>
+            </div>
+            <button onclick="resetSearch()" class="text-xs text-ocean-700 underline font-semibold hover:text-ocean-900">清除搜尋條件</button>
+        </div>
+
+        <div id="featuredSection" class="bg-white rounded-xl shadow-md overflow-hidden border border-slate-200 grid grid-cols-1 lg:grid-cols-12 gap-0"></div>
+
+        <div>
+            <div class="flex justify-between items-center border-b pb-2 mb-4">
+                <h3 class="text-lg font-bold font-serif text-slate-900 flex items-center">
+                    <i class="fa-solid fa-list-ul text-ocean-700 mr-2"></i>
+                    <span id="currentCategoryTitle">主頁動態新聞</span>
+                </h3>
+                <span id="newsCount" class="text-xs text-slate-500">共 0 則新聞</span>
+            </div>
+
+            <div id="newsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+
+            <div id="noNewsAlert" class="hidden bg-white rounded-lg p-12 text-center border text-slate-500">
+                <i class="fa-solid fa-newspaper text-5xl text-slate-300 mb-3"></i>
+                <p class="text-base font-semibold">目前尚無相關新聞文章</p>
+                <p class="text-xs text-slate-400 mt-1">您可以點擊右上角「記者發布稿件」來新增新聞稿或分類！</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="authView" class="hidden max-w-md mx-auto my-12">
+        <div class="bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-ocean-100 text-ocean-700 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+                <h2 class="text-2xl font-bold font-serif text-slate-900">記者審稿後台權限驗證</h2>
+                <p class="text-xs text-slate-500 mt-1">請輸入主密碼或副密碼以解鎖後台</p>
+            </div>
+
+            <form onsubmit="handleAuthSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">記者密碼 (主密碼/副密碼)</label>
+                    <div class="relative">
+                        <input type="password" id="authPassword" required 
+                            class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ocean-500 text-sm"
+                            placeholder="請輸入密碼">
+                        <i class="fa-solid fa-key absolute left-3 top-3 text-slate-400 text-xs"></i>
+                    </div>
+                </div>
+
+                <div id="authErrorMsg" class="hidden text-xs text-red-600 bg-red-50 p-2.5 rounded border border-red-200 flex items-center">
+                    <i class="fa-solid fa-circle-exclamation mr-1.5"></i>
+                    <span>密碼不正確，請重新輸入！</span>
+                </div>
+
+                <button type="submit" class="w-full bg-ocean-700 hover:bg-ocean-900 text-white font-bold py-2 rounded-lg shadow transition text-xs sm:text-sm flex justify-center items-center">
+                    <i class="fa-solid fa-lock-open mr-2"></i> 解鎖發布後台
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <section id="reporterView" class="hidden space-y-6">
+
+        <div class="bg-slate-800 text-white p-4 rounded-xl shadow flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center space-x-3">
+                <span class="bg-green-500 w-3 h-3 rounded-full animate-pulse"></span>
+                <div>
+                    <h2 class="text-lg font-bold font-serif">國境之南每日報紙 - 記者採訪發稿與後台管理</h2>
+                    <p class="text-xs text-slate-300" id="loginRoleBadge">目前權限：檢視中...</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="togglePasswordModal()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded text-xs font-semibold transition flex items-center">
+                    <i class="fa-solid fa-gear mr-1"></i> 後台密碼與權限管理
+                </button>
+                <button onclick="lockReporter()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-xs font-semibold transition flex items-center">
+                    <i class="fa-solid fa-lock mr-1"></i> 登出 / 鎖定權限
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <div class="lg:col-span-5 bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                <div class="flex justify-between items-center border-b pb-3 mb-4">
+                    <h3 class="font-bold text-slate-900 font-serif flex items-center text-lg">
+                        <i class="fa-solid fa-pen-to-square text-ocean-700 mr-2"></i>
+                        <span id="formModeTitle">發布新新聞稿</span>
+                    </h3>
+                    <button id="cancelEditBtn" onclick="resetForm()" class="hidden text-xs text-red-600 hover:underline">
+                        取消編輯
+                    </button>
+                </div>
+
+                <!-- 草稿提醒列 -->
+                <div id="draftAlertBar" class="hidden mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between text-xs text-amber-800">
+                    <div class="flex items-center space-x-1.5">
+                        <i class="fa-solid fa-floppy-disk text-amber-600"></i>
+                        <span>偵測到上次未發布草稿 (<span id="draftTime">--</span>)</span>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="loadDraft()" class="bg-amber-600 hover:bg-amber-700 text-white px-2 py-0.5 rounded font-bold transition">載入草稿</button>
+                        <button onclick="clearDraft()" class="text-amber-700 hover:underline">清除</button>
+                    </div>
+                </div>
+
+                <form id="newsForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                    <input type="hidden" id="editArticleId">
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">新聞標題 *</label>
+                        <input type="text" id="inputTitle" required oninput="triggerAutoSaveDraft()" placeholder="例如：墾丁高中衝浪社勇奪全國高中聯賽冠軍" class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">新聞分類 *</label>
+                            <select id="inputCategory" required onchange="triggerAutoSaveDraft()" class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500 bg-white">
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">發文署名 *</label>
+                            <div class="flex gap-2">
+                                <select id="inputAuthor" required onchange="triggerAutoSaveDraft()" class="min-w-0 flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500 bg-white"></select>
+                                <button type="button" onclick="manageBylines()" class="shrink-0 bg-slate-100 hover:bg-slate-200 border rounded-lg px-3 py-2 text-xs font-bold">管理署名</button>
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-1">每個帳號可建立多個署名，每篇文章發布時可選擇使用哪個名字。</p>
+                        </div>
+                    </div>
+
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-3" id="coverImageEditor">
+                        <label class="block text-xs font-bold text-slate-700">封面圖片設定</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center gap-2 text-sm text-slate-700"><input type="radio" name="coverMode" value="default" checked onchange="updateCoverMode()"> 使用系統預設封面圖</label>
+                            <label class="flex items-center gap-2 text-sm text-slate-700"><input type="radio" name="coverMode" value="url" onchange="updateCoverMode()"> 使用圖片網址</label>
+                            <label class="flex items-center gap-2 text-sm text-slate-700"><input type="radio" name="coverMode" value="upload" onchange="updateCoverMode()"> 直接上傳圖片</label>
+                            <label class="flex items-center gap-2 text-sm font-semibold text-rose-700"><input type="checkbox" id="inputNoCover" onchange="updateCoverMode(); triggerAutoSaveDraft()"> 無封面（不顯示封面圖片）</label>
+                        </div>
+                        <div id="coverUrlWrap" class="hidden">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1" for="inputImage">圖片網址</label>
+                            <input type="url" id="inputImage" oninput="triggerAutoSaveDraft()" placeholder="https://..." class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500">
+                        </div>
+                        <div id="coverUploadWrap" class="hidden">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1" for="inputCoverFile">選擇封面圖片</label>
+                            <input type="file" id="inputCoverFile" accept="image/*" class="w-full border rounded-lg px-3 py-2 text-sm bg-white" onchange="triggerAutoSaveDraft()">
+                            <p class="text-[10px] text-slate-500 mt-1">封面圖片會在發布時上傳至媒體儲存空間，單張上限 50 MB。</p>
+                        </div>
+                        <p class="text-[10px] text-slate-500">可選擇預設圖、圖片網址、直接上傳，或勾選無封面。</p>
+                    </div>
+
+                    <div>
+                        <label for="inputMediaFiles" class="block text-xs font-bold text-slate-700 mb-1">新聞媒體（圖片／影片／音訊，最多 10 個）</label>
+                        <input type="file" id="inputMediaFiles" multiple accept="image/*,video/*,audio/*" onchange="previewSelectedMedia()" class="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                        <p class="text-[10px] text-slate-500 mt-1">按下「發布新聞稿」時才會上傳。每個檔案不得超過 50 MB；可混合選擇照片、影片與錄音。</p>
+                        <div id="selectedMediaPreview" class="mt-2 space-y-1 text-xs text-slate-600"></div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">新聞摘要 (簡短導讀)</label>
+                        <textarea id="inputSummary" rows="2" oninput="triggerAutoSaveDraft()" placeholder="簡述新聞核心重點，展示於卡片預覽..." class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">新聞內文 *</label>
+                        <textarea id="inputContent" rows="8" required oninput="triggerAutoSaveDraft()" placeholder="請輸入完整新聞內容..." class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500 custom-scrollbar"></textarea>
+                    </div>
+
+                    <section class="rounded-xl border border-amber-200 bg-amber-50/60 p-4 space-y-3" id="adEditorSection">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 pb-2">
+                            <div>
+                                <h4 class="font-bold text-amber-900"><i class="fa-solid fa-rectangle-ad mr-2"></i>新聞下方置入廣告</h4>
+                                <p class="text-[11px] text-amber-800 mt-1">每篇最多 10 個候選廣告；每次開啟文章最多顯示 1 個，依機率抽選。</p>
+                            </div>
+                            <span id="adCountBadge" class="text-xs font-bold text-amber-900">0 / 10</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+                            <select id="adTemplateSelect" class="w-full border border-amber-300 rounded-lg px-3 py-2 text-xs bg-white">
+                                <option value="">選擇已儲存的廣告範本</option>
+                            </select>
+                            <button type="button" onclick="applySelectedAdTemplate()" class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-3 py-2 text-xs font-bold">套用範本</button>
+                        </div>
+                        <div id="adEditorList" class="space-y-3"></div>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" onclick="addAdEditorRow()" id="addAdRowBtn" class="bg-white border border-amber-400 text-amber-900 hover:bg-amber-100 rounded-lg px-3 py-2 text-xs font-bold"><i class="fa-solid fa-plus mr-1"></i>新增候選廣告</button>
+                            <button type="button" onclick="saveCurrentAdAsTemplate()" class="bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-lg px-3 py-2 text-xs font-bold"><i class="fa-solid fa-floppy-disk mr-1"></i>將廣告設定存為範本</button>
+                        </div>
+                        <p class="text-[10px] text-amber-900">機率可填 0–100（可用小數），所有候選廣告機率合計不得超過 100%。廣告範本目前保存在這台裝置的瀏覽器中；每篇新聞的廣告設定會隨新聞資料一同保存。</p>
+                    </section>
+
+                    <div class="flex items-center space-x-2">
+                        <input type="checkbox" id="inputIsFeatured" class="rounded text-ocean-700 focus:ring-ocean-500 h-4 w-4">
+                        <label for="inputIsFeatured" class="text-xs font-bold text-slate-700 cursor-pointer">設為頭條焦點新聞</label>
+                    </div>
+
+                    <div class="flex space-x-2 pt-1">
+                        <button type="button" onclick="saveDraftManually()" class="w-1/3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-lg transition text-xs flex justify-center items-center">
+                            <i class="fa-solid fa-floppy-disk mr-1"></i> 暫存草稿
+                        </button>
+                        <button type="submit" id="submitBtn" class="w-2/3 bg-ocean-700 hover:bg-ocean-900 text-white font-bold py-2 rounded-lg shadow transition text-xs sm:text-sm flex justify-center items-center">
+                            <i class="fa-solid fa-paper-plane mr-2"></i> 發布新聞稿
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="lg:col-span-7 space-y-6">
+                
+                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                    <div class="flex justify-between items-center border-b pb-3 mb-4">
+                        <h3 class="font-bold text-slate-900 font-serif text-lg flex items-center">
+                            <i class="fa-solid fa-tags text-ocean-700 mr-2"></i>
+                            新聞分類動態管理
+                        </h3>
+                        <span class="text-xs text-slate-400">新增或刪除前台新聞分類</span>
+                    </div>
+
+                    <form onsubmit="handleAddCategory(event)" class="flex gap-2 mb-4">
+                        <input type="text" id="newCategoryInput" placeholder="輸入新分類名稱 (例: 社團花絮)..." required class="flex-1 border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ocean-500">
+                        <button type="submit" class="bg-ocean-700 hover:bg-ocean-900 text-white font-bold px-4 py-1.5 rounded-lg text-xs transition flex items-center shrink-0">
+                            <i class="fa-solid fa-plus mr-1"></i> 新增分類
+                        </button>
+                    </form>
+
+                    <div id="adminCategoryTags" class="flex flex-wrap gap-2 text-xs"></div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                    <div class="flex justify-between items-center border-b pb-3 mb-4">
+                        <h3 class="font-bold text-slate-900 font-serif text-lg flex items-center">
+                            <i class="fa-solid fa-phone text-ocean-700 mr-2"></i>
+                            頁尾聯絡電話設定
+                        </h3>
+                        <span class="text-xs text-slate-400">若留空則前台不顯示電話號碼</span>
+                    </div>
+
+                    <form onsubmit="handleSavePhoneContact(event)" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">報社/校園聯絡電話 (預設空白)</label>
+                            <input type="text" id="inputFooterPhone" placeholder="例如：(08) 886-1234" class="w-full border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ocean-500">
+                        </div>
+                        <div class="flex justify-end">
+                            <button type="submit" class="bg-ocean-700 hover:bg-ocean-900 text-white font-bold px-4 py-1.5 rounded-lg text-xs transition shadow flex items-center">
+                                <i class="fa-solid fa-floppy-disk mr-1"></i> 儲存電話設定
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                    <div class="flex justify-between items-center border-b pb-3 mb-4">
+                        <h3 class="font-bold text-slate-900 font-serif text-lg flex items-center">
+                            <i class="fa-solid fa-folder-open text-ocean-700 mr-2"></i>
+                            已發布稿件管理
+                        </h3>
+                        <button onclick="clearAllNewsPrompt()" class="text-xs text-red-600 hover:underline">
+                            重置為預設範例
+                        </button>
+                    </div>
+
+                    <div id="adminNewsList" class="space-y-3 max-h-[450px] overflow-y-auto pr-1 custom-scrollbar"></div>
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+</main>
+
+<footer class="bg-slate-900 text-slate-300 text-xs py-8 border-t border-slate-800 mt-12">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col gap-6">
+        <p class="text-slate-100 font-bold font-serif text-base flex items-center">
+            <i class="fa-solid fa-newspaper text-ocean-500 mr-2"></i> 國境之南每日報紙 News Platform
+        </p>
+
+        <div class="flex flex-col md:flex-row md:items-start gap-5 md:gap-8">
+            <!-- 小編資訊獨立放在左側 -->
+            <div class="flex items-center gap-3 shrink-0 md:pr-6 md:border-r md:border-slate-700">
+                <span class="font-bold text-slate-200 text-sm">小編：</span>
+
+            </div>
+
+            <!-- IG、Telegram、TikTok 在右側並排；小螢幕可自動換行 -->
+            <div class="flex flex-col sm:flex-row sm:flex-wrap gap-4 sm:gap-6 flex-1">
+                <div class="flex items-start gap-3 sm:pr-6 sm:border-r sm:border-slate-700">
+                    <span class="w-10 h-10 rounded-full bg-pink-500 text-white flex items-center justify-center text-xl shrink-0"><i class="fa-brands fa-instagram"></i></span>
+                    <div class="space-y-1">
+                        <div class="font-bold text-slate-100 text-sm">IG</div>
+                        <div>kending20071230</div>
+                        <div>墾丁高中放牛班</div>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3 sm:pr-6 sm:border-r sm:border-slate-700">
+                    <span class="w-10 h-10 rounded-full bg-sky-500 text-white flex items-center justify-center text-xl shrink-0"><i class="fa-brands fa-telegram"></i></span>
+                    <div class="space-y-1">
+                        <div class="font-bold text-slate-100 text-sm">Telegram</div>
+                        <div>kend20071230</div>
+                        <div>恆高放</div>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="w-10 h-10 rounded-full bg-teal-400 text-slate-900 flex items-center justify-center text-xl shrink-0"><i class="fa-brands fa-tiktok"></i></span>
+                    <div class="space-y-1">
+                        <div class="font-bold text-slate-100 text-sm">TikTok</div>
+                        <div>kending20071230</div>
+                        <div>恆春高中放牛班</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="footerPhoneDisplay" class="hidden flex items-center gap-2 text-amber-300">
+            <i class="fa-solid fa-phone"></i>
+            <span class="font-bold">聯絡電話:</span>
+            <span id="footerPhoneText"></span>
+        </div>
+        <p class="text-[11px] text-slate-500 pt-1">© 2026 國境之南每日報紙 版權所有</p>
+    </div>
+</footer>
+
+<div id="articleModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+        <div class="p-4 border-b flex justify-between items-center bg-slate-50">
+            <span id="modalCategory" class="text-xs font-bold px-2.5 py-1 rounded bg-ocean-100 text-ocean-700">分類</span>
+            <button onclick="closeArticleModal()" class="text-slate-400 hover:text-slate-700 text-lg w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-200 transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="p-6 overflow-y-auto space-y-4 custom-scrollbar">
+            <h2 id="modalTitle" class="text-2xl md:text-3xl font-black font-serif text-slate-900 leading-snug">新聞標題</h2>
+            
+            <div class="flex items-center space-x-4 text-xs text-slate-500 border-y py-2">
+                <span id="modalAuthor"><i class="fa-solid fa-user-pen mr-1"></i> 記者</span>
+                <span id="modalDate"><i class="fa-regular fa-calendar-check mr-1"></i> 時間</span>
+            </div>
+
+            <div id="modalImageContainer" class="rounded-xl overflow-hidden shadow-sm">
+                <img id="modalImage" src="" alt="新聞圖片" class="w-full max-h-96 object-cover">
+            </div>
+
+            <div id="modalContent" class="text-slate-700 leading-relaxed font-serif text-base whitespace-pre-line pt-2">
+                新聞內文載入中...
+            </div>
+            <div id="modalMediaContainer" class="space-y-4"></div>
+            <section id="articleAdContainer" class="hidden border-t-2 border-dashed border-slate-200 pt-4 mt-4" aria-label="新聞下方廣告">
+                <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">贊助廣告</div>
+                <div id="articleAdContent"></div>
+            </section>
+            <section id="articleCommentsSection" class="border-t border-slate-200 pt-5 mt-5" aria-label="文章留言">
+                <h3 class="text-lg font-bold text-slate-900 mb-3"><i class="fa-regular fa-comments mr-2 text-sky-700"></i>讀者留言</h3>
+                <form id="articleCommentForm" class="space-y-3 mb-5">
+                    <div>
+                        <label for="commentAuthorInput" class="block text-sm font-semibold text-slate-700 mb-1">署名（不需帳號）</label>
+                        <input id="commentAuthorInput" maxlength="40" required class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="輸入你想顯示的署名">
+                    </div>
+                    <div>
+                        <label for="commentContentInput" class="block text-sm font-semibold text-slate-700 mb-1">留言內容</label>
+                        <textarea id="commentContentInput" maxlength="2000" rows="3" required class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="請輸入留言（最多 2000 字）"></textarea>
+                    </div>
+                    <button type="submit" class="rounded-lg bg-sky-700 px-4 py-2 text-sm font-bold text-white hover:bg-sky-800">發表留言</button>
+                    <p class="text-xs text-slate-500">無需註冊或登入。請勿輸入個人敏感資料或張貼違法內容。</p>
+                </form>
+                <div id="articleCommentsList" class="space-y-3"></div>
+            </section>
+        </div>
+
+        <div class="p-4 border-t bg-slate-50 flex justify-end">
+            <button onclick="closeArticleModal()" class="bg-slate-800 text-white px-5 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-900">
+                關閉文章
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="passwordModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <div class="flex justify-between items-center border-b pb-3">
+            <h3 class="font-bold font-serif text-slate-900 text-lg flex items-center">
+                <i class="fa-solid fa-user-gear text-ocean-700 mr-2"></i> 密碼與權限管理
+            </h3>
+            <button onclick="togglePasswordModal()" class="text-slate-400 hover:text-slate-700 text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div id="masterPasswordSection" class="space-y-3">
+            <h4 class="text-sm font-bold text-slate-800 border-l-4 border-ocean-700 pl-2">修改主密碼</h4>
+            <p class="text-xs text-slate-500">主密碼具有最高權限。密碼支援中文、英文、數字、符號，且無格式長度限制。</p>
+
+            <form onsubmit="handleChangeMasterPassword(event)" class="space-y-3 bg-slate-50 p-4 rounded-xl border">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">目前密碼 (主/副密碼皆可驗證)</label>
+                    <input type="password" id="pwdMasterOld" required class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">設定全新主密碼</label>
+                    <input type="password" id="pwdMasterNew" required class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">再次確認新主密碼</label>
+                    <input type="password" id="pwdMasterConfirm" required class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500">
+                </div>
+
+                <div id="pwdMasterMsg" class="hidden text-xs p-2 rounded border"></div>
+
+                <button type="submit" class="w-full bg-ocean-700 hover:bg-ocean-900 text-white rounded-lg text-xs font-bold py-2 shadow transition">
+                    更新主密碼
+                </button>
+            </form>
+        </div>
+
+        <div id="subOwnPasswordSection" class="hidden space-y-3">
+            <h4 class="text-sm font-bold text-slate-800 border-l-4 border-ocean-700 pl-2">修改自己的副密碼</h4>
+            <p class="text-xs text-slate-500">修改後請使用新副密碼重新登入。管理員不能替已建立的副密碼更改密碼。</p>
+            <form onsubmit="handleChangeOwnSubPassword(event)" class="space-y-3 bg-slate-50 p-4 rounded-xl border">
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">目前副密碼</label><input type="password" id="ownSubPwdOld" required autocomplete="current-password" class="w-full border rounded-lg px-3 py-1.5 text-sm"></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">新副密碼</label><input type="password" id="ownSubPwdNew" required autocomplete="new-password" class="w-full border rounded-lg px-3 py-1.5 text-sm"></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">確認新副密碼</label><input type="password" id="ownSubPwdConfirm" required autocomplete="new-password" class="w-full border rounded-lg px-3 py-1.5 text-sm"></div>
+                <div id="ownSubPwdMsg" class="hidden text-xs p-2 rounded border"></div>
+                <button type="submit" class="w-full bg-ocean-700 hover:bg-ocean-900 text-white rounded-lg text-xs font-bold py-2">更新我的副密碼</button>
+            </form>
+        </div>
+
+        <hr id="subPasswordDivider">
+
+        <div id="subPasswordAdminSection" class="space-y-3">
+            <div class="flex justify-between items-center">
+                <h4 class="text-sm font-bold text-slate-800 border-l-4 border-amber-600 pl-2">副密碼管理 (Sub-passwords)</h4>
+                <span class="text-xs text-amber-700 font-semibold" id="subPwdCountInfo">共 0 組副密碼</span>
+            </div>
+            <p class="text-xs text-slate-500">管理副密碼與身分；自媒體創作者的文章固定歸類於「自媒體」。</p>
+
+            <form onsubmit="handleAddSubPassword(event)" class="flex space-x-2">
+                <input type="text" id="newSubPwdInput" required placeholder="輸入新副密碼" class="flex-1 border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ocean-500">
+                <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-1.5 rounded-lg text-xs transition shadow flex items-center">
+                    <i class="fa-solid fa-plus mr-1"></i> 新增副密碼
+                </button>
+            </form>
+
+            <div id="subPasswordListContainer" class="space-y-2 max-h-40 overflow-y-auto custom-scrollbar"></div>
+        </div>
+
+        <div class="flex justify-end border-t pt-3">
+            <button type="button" onclick="togglePasswordModal()" class="px-4 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-300">關閉</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const CLOUD_API_URL = "https://gwchyisnnbbvfeagdvik.supabase.co/functions/v1/clever-processor";
+    const DEFAULT_CATEGORIES = ['主頁', '頭條', '經濟', '日常', '國際', '美食', '自媒體'];
+    const DEFAULT_MASTER_PWD = 'toin24133567';
+
+    const DEFAULT_NEWS = [
+        {
+            id: 'news-1',
+            title: '【頭條】墾丁高中衝浪社勇奪全國高中水上運動錦標賽總冠軍！',
+            category: '頭條',
+            author: '體育新聞組 羅記者',
+            date: '2026-10-10 14:30',
+            image: 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?auto=format&fit=crop&w=800&q=80',
+            summary: '經過連續三天的激戰，墾丁高中衝浪社於佳樂水賽場以優異的浪壁轉向技巧，刷新校史最佳紀錄。',
+            content: `本校衝浪社於本週末舉行的「115學年度全國高中水上運動錦標賽」中大放異彩！隊長高二A班陳同學在個人男子組決賽中，最後倒數三分鐘成功抓住關鍵大浪，以一套完美的連續轉向與管浪動作，拿到9.2高分逆轉奪冠。\n\n教練表示：「墾丁擁有全台最棒的海浪環境，同學們平時利用課餘時間進行自主鍛鍊，並結合海洋環境教育，這個冠軍是大家 sweat and tears 的結晶。」\n\n校長特別於今早朝會親自頒發獎牌，並宣佈將規劃增設「海洋運動培訓中心」，預計明年引進國際級衝浪防護設備，培育更多優秀水上選手。`,
+            views: 1280,
+            isFeatured: true
+        },
+        {
+            id: 'news-2',
+            title: '【經濟】墾丁校園文創市集首度導入電子支付 營業額創新高！',
+            category: '經濟',
+            author: '財經專題組 林記者',
+            date: '2026-10-09 09:15',
+            image: 'https://images.unsplash.com/photo-1556742049-0a6723d473d3?auto=format&fit=crop&w=800&q=80',
+            summary: '結合在地觀光與青年創業，學生團隊營運的假日文創市集交易量倍增。',
+            content: `墾丁高中商管社與班聯會聯合舉行的「恆春半島青年文創市集」，本季首度試辦無現金電子支付。學生創業攤位涵蓋海洋手工藝品、在地風味冷飲與原創繪本。\n\n據統計，單日交易金額突破12萬元，較以往現金交易時代成長了近80%。學生執行長表示：「透過多元支付，不合方便來觀光的遊客消費，也讓參與的同學們實際體驗商業運作與數位金融管理。」`,
+            views: 890,
+            isFeatured: false
+        }
+    ];
+
+    let newsData = [];
+    let categoryList = [];
+    let subPasswordsData = [];
+    let footerPhone = '';
+    let currentFilterCategory = '主頁';
+    let currentSearchKeyword = '';
+    let isReporterAuthenticated = false;
+    let loggedInWithMaster = false;
+    let cloudLoginPassword = '';
+    let cloudLoginRole = '';
+    let cloudLoginAccountType = 'official_reporter';
+    let cloudLoginSubId = '';
+    const SELF_MEDIA_CATEGORY = '自媒體';
+    let cloudRevision = '';
+    let autoSaveTimer = null;
+
+    window.addEventListener('DOMContentLoaded', () => {
+        initLocalStorage();
+        updateClock();
+        setInterval(updateClock, 1000);
+        renderCategoryUI();
+        renderPhoneContactUI();
+        renderNews();
+        updateCoverMode();
+        refreshBylineOptions();
+        checkDraftOnLoad();
+
+        // 重要：訪客開啟網站時，從 Supabase 讀取公開新聞狀態，
+        // 讓不同裝置看到同一份雲端新聞，而不是只讀取各自的 localStorage。
+        loadPublicCloudState();
+    });
+
+    async function loadPublicCloudState() {
+        try {
+            const response = await fetch(CLOUD_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'public_get' }),
+                cache: 'no-store'
+            });
+            if (!response.ok) {
+                throw new Error('雲端新聞讀取失敗（HTTP ' + response.status + '）');
+            }
+
+            const result = await response.json();
+            const state = result && result.state;
+            if (!state || !Array.isArray(state.news)) {
+                throw new Error('雲端回傳資料格式不正確');
+            }
+
+            newsData = state.news;
+            localStorage.setItem('kenting_news_data', JSON.stringify(newsData));
+
+            if (Array.isArray(state.categories)) {
+                categoryList = state.categories.slice();
+                if (!categoryList.includes(SELF_MEDIA_CATEGORY)) categoryList.push(SELF_MEDIA_CATEGORY);
+                localStorage.setItem('kenting_news_categories', JSON.stringify(categoryList));
+            }
+
+            if (typeof state.phone === 'string') {
+                footerPhone = state.phone;
+                localStorage.setItem('kenting_footer_phone', footerPhone);
+            }
+
+            cloudRevision = result.revision || cloudRevision;
+            renderCategoryUI();
+            renderPhoneContactUI();
+            renderNews();
+        } catch (error) {
+            // 雲端不可用時保留本機快取，避免整個網站空白；
+            // console 中會留下原因，方便除錯。
+            console.error('載入雲端新聞失敗，暫時顯示本機資料：', error);
+        }
+    }
+
+    function initLocalStorage() {
+        const storedNews = localStorage.getItem('kenting_news_data');
+        newsData = storedNews ? JSON.parse(storedNews) : DEFAULT_NEWS;
+        if (!storedNews) localStorage.setItem('kenting_news_data', JSON.stringify(DEFAULT_NEWS));
+
+        const storedCats = localStorage.getItem('kenting_news_categories');
+        categoryList = storedCats ? JSON.parse(storedCats) : DEFAULT_CATEGORIES;
+        if (!storedCats) localStorage.setItem('kenting_news_categories', JSON.stringify(DEFAULT_CATEGORIES));
+        if (!categoryList.includes(SELF_MEDIA_CATEGORY)) { categoryList.push(SELF_MEDIA_CATEGORY); localStorage.setItem('kenting_news_categories', JSON.stringify(categoryList)); }
+
+        if (!localStorage.getItem('kenting_reporter_pwd')) {
+            localStorage.setItem('kenting_reporter_pwd', DEFAULT_MASTER_PWD);
+        }
+
+        const storedSubPwds = localStorage.getItem('kenting_reporter_sub_pwds');
+        subPasswordsData = storedSubPwds ? JSON.parse(storedSubPwds) : [];
+
+        footerPhone = localStorage.getItem('kenting_footer_phone') || '';
+    }
+
+    function updateClock() {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        const timeStr = now.toLocaleTimeString('zh-TW', { hour12: false });
+        const el = document.getElementById('currentDateTime');
+        if (el) el.innerText = `${dateStr} ${timeStr}`;
+    }
+
+    function bylineStorageKey() {
+        const accountKey = loggedInWithMaster ? 'master' : (cloudLoginSubId || cloudLoginRole || 'guest');
+        return 'southern_border_bylines_' + accountKey;
+    }
+    function getBylines() {
+        try {
+            const parsed = JSON.parse(localStorage.getItem(bylineStorageKey()) || '[]');
+            return Array.isArray(parsed) ? parsed.filter(x => typeof x === 'string' && x.trim()) : [];
+        } catch (_) { return []; }
+    }
+
+    async function persistBylinesToCloud(names) {
+        if (!isReporterAuthenticated || !cloudLoginPassword) throw new Error('請先登入後台，再保存署名。');
+        const response = await fetch(CLOUD_API_URL, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'bylines_save', password: cloudLoginPassword, bylines: names })
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || result.ok === false || result.error) throw new Error(result.error || '雲端署名保存失敗。');
+        localStorage.setItem(bylineStorageKey(), JSON.stringify(names));
+        return names;
+    }
+    async function loadBylinesFromCloud() {
+        if (!isReporterAuthenticated || !cloudLoginPassword) return;
+        const response = await fetch(CLOUD_API_URL, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'bylines_get', password: cloudLoginPassword })
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || result.error) throw new Error(result.error || '雲端署名讀取失敗。');
+        const names = Array.isArray(result.bylines) ? result.bylines.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim()) : [];
+        localStorage.setItem(bylineStorageKey(), JSON.stringify(names));
+        refreshBylineOptions();
+        return names;
+    }
+
+    function refreshBylineOptions(preferred = '') {
+        const select = document.getElementById('inputAuthor');
+        if (!select) return;
+        const names = getBylines();
+        select.innerHTML = '';
+        names.forEach(name => {
+            const option = document.createElement('option');
+            option.value = name; option.textContent = name; select.appendChild(option);
+        });
+        if (!names.length) {
+            const option = document.createElement('option');
+            option.value = ''; option.textContent = '請先新增署名'; select.appendChild(option);
+        }
+        select.value = names.includes(preferred) ? preferred : (names[0] || '');
+        select.required = true;
+    }
+    function manageBylines() {
+        const current = getBylines();
+        const existing = document.getElementById('bylineManagerModal');
+        if (existing) existing.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'bylineManagerModal';
+        overlay.className = 'fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/60 p-4';
+        overlay.innerHTML = `
+          <div class="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+            <div class="mb-4 flex items-center justify-between">
+              <h3 class="text-lg font-bold text-slate-800">署名管理</h3>
+              <button type="button" id="bylineModalClose" class="rounded-lg px-3 py-1 text-slate-500 hover:bg-slate-100">✕</button>
+            </div>
+            <div class="space-y-4">
+              <section class="rounded-xl border border-slate-200 p-3">
+                <label for="bylineNewName" class="mb-2 block text-sm font-bold text-slate-700">新增署名</label>
+                <div class="flex gap-2">
+                  <input id="bylineNewName" maxlength="40" class="min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm" placeholder="輸入新署名">
+                  <button type="button" id="bylineAddBtn" class="rounded-lg bg-sky-700 px-4 py-2 text-sm font-bold text-white">新增</button>
+                </div>
+              </section>
+              <section class="rounded-xl border border-rose-200 p-3">
+                <label for="bylineDeleteSelect" class="mb-2 block text-sm font-bold text-slate-700">選擇要刪除的署名</label>
+                <select id="bylineDeleteSelect" class="w-full rounded-lg border px-3 py-2 text-sm"></select>
+                <p class="mt-2 text-xs text-slate-500">若已有文章使用該署名，必須先編輯那些文章並更改署名，才能刪除。</p>
+                <button type="button" id="bylineDeleteBtn" class="mt-3 w-full rounded-lg bg-rose-600 px-4 py-2 text-sm font-bold text-white">刪除選取署名</button>
+              </section>
+              <p class="text-xs text-slate-500">每個帳號可建立多個署名；署名最多 40 個字。</p>
+            </div>
+          </div>`;
+        document.body.appendChild(overlay);
+
+        const close = () => overlay.remove();
+        overlay.querySelector('#bylineModalClose').addEventListener('click', close);
+        overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+        const select = overlay.querySelector('#bylineDeleteSelect');
+        const refill = () => {
+            const names = getBylines();
+            select.innerHTML = '';
+            if (!names.length) {
+                const opt = document.createElement('option');
+                opt.value = ''; opt.textContent = '目前沒有署名';
+                select.appendChild(opt);
+            } else {
+                names.forEach(name => {
+                    const opt = document.createElement('option');
+                    opt.value = name; opt.textContent = name;
+                    select.appendChild(opt);
+                });
+            }
+            overlay.querySelector('#bylineDeleteBtn').disabled = !names.length;
+            overlay.querySelector('#bylineDeleteBtn').classList.toggle('opacity-50', !names.length);
+        };
+        refill();
+
+        overlay.querySelector('#bylineAddBtn').addEventListener('click', async () => {
+            const input = overlay.querySelector('#bylineNewName');
+            const clean = input.value.trim();
+            if (!clean) { alert('請輸入署名。'); input.focus(); return; }
+            if (clean.length > 40) { alert('署名最多 40 個字。'); return; }
+            const names = getBylines();
+            if (names.includes(clean)) { alert('這個署名已存在。'); return; }
+            names.push(clean);
+            try { await persistBylinesToCloud(names); } catch (e) { alert('署名未能保存到雲端：' + e.message); return; }
+            refreshBylineOptions(clean);
+            triggerAutoSaveDraft();
+            input.value = '';
+            refill();
+            alert('署名已新增。');
+        });
+
+        overlay.querySelector('#bylineDeleteBtn').addEventListener('click', async () => {
+            const name = select.value;
+            if (!name) { alert('請先選擇要刪除的署名。'); return; }
+            const articles = Array.isArray(newsData) ? newsData : [];
+            const usedArticles = articles.filter(article => String(article.author || article.byline || '').trim() === name);
+            if (usedArticles.length) {
+                const titles = usedArticles.slice(0, 5).map(a => '・' + (a.title || '未命名文章')).join('\n');
+                alert('無法刪除署名「' + name + '」。目前仍有 ' + usedArticles.length + ' 篇已發布文章使用此署名。\n請先編輯這些文章並更改署名後，再重新刪除。\n' + titles + (usedArticles.length > 5 ? '\n……' : ''));
+                return;
+            }
+            if (!confirm('確定刪除署名「' + name + '」？')) return;
+            const names = getBylines().filter(x => x !== name);
+            try { await persistBylinesToCloud(names); } catch (e) { alert('署名未能保存到雲端：' + e.message); return; }
+            refreshBylineOptions();
+            triggerAutoSaveDraft();
+            refill();
+            alert('署名已刪除。');
+        });
+    }
+
+    function triggerAutoSaveDraft() {
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(() => {
+            saveDraftData(true);
+        }, 2000);
+    }
+
+    function saveDraftManually() {
+        saveDraftData(false);
+        alert('草稿已成功暫存！');
+    }
+
+    function saveDraftData(isSilent) {
+        const title = document.getElementById('inputTitle').value;
+        const content = document.getElementById('inputContent').value;
+        if (!title && !content) return;
+
+        const draftObj = {
+            title,
+            category: document.getElementById('inputCategory').value,
+            author: document.getElementById('inputAuthor').value,
+            image: document.getElementById('inputImage').value,
+            coverMode: document.querySelector('input[name="coverMode"]:checked')?.value || 'default',
+            noCover: document.getElementById('inputNoCover').checked,
+            summary: document.getElementById('inputSummary').value,
+            content,
+            savedAt: new Date().toLocaleTimeString('zh-TW', { hour12: false })
+        };
+
+        localStorage.setItem('kenting_news_draft', JSON.stringify(draftObj));
+        if (isSilent) {
+            updateCoverMode();
+    checkDraftOnLoad();
+        }
+    }
+
+    function checkDraftOnLoad() {
+        const draftStr = localStorage.getItem('kenting_news_draft');
+        const alertBar = document.getElementById('draftAlertBar');
+        const timeSpan = document.getElementById('draftTime');
+
+        if (draftStr) {
+            try {
+                const draftObj = JSON.parse(draftStr);
+                if (draftObj && (draftObj.title || draftObj.content)) {
+                    timeSpan.innerText = draftObj.savedAt || '剛才';
+                    alertBar.classList.remove('hidden');
+                    return;
+                }
+            } catch(e) {}
+        }
+        alertBar.classList.add('hidden');
+    }
+
+    function loadDraft() {
+        const draftStr = localStorage.getItem('kenting_news_draft');
+        if (!draftStr) return;
+        try {
+            const draft = JSON.parse(draftStr);
+            if (draft.title) document.getElementById('inputTitle').value = draft.title;
+            if (draft.category) document.getElementById('inputCategory').value = draft.category;
+            if (draft.author) document.getElementById('inputAuthor').value = draft.author;
+            if (draft.image) document.getElementById('inputImage').value = draft.image;
+            if (draft.coverMode) { const mode = document.querySelector(`input[name="coverMode"][value="${draft.coverMode}"]`); if (mode) mode.checked = true; }
+            document.getElementById('inputNoCover').checked = !!draft.noCover; updateCoverMode();
+            if (draft.summary) document.getElementById('inputSummary').value = draft.summary;
+            if (draft.content) document.getElementById('inputContent').value = draft.content;
+            alert('草稿已成功載入！');
+        } catch(e) {}
+    }
+
+    function clearDraft() {
+        localStorage.removeItem('kenting_news_draft');
+        document.getElementById('draftAlertBar').classList.add('hidden');
+    }
+
+    function renderPhoneContactUI() {
+        const displayBlock = document.getElementById('footerPhoneDisplay');
+        const phoneText = document.getElementById('footerPhoneText');
+        const phoneInput = document.getElementById('inputFooterPhone');
+
+        if (phoneInput) phoneInput.value = footerPhone;
+
+        if (footerPhone.trim() !== '') {
+            phoneText.innerText = footerPhone;
+            displayBlock.classList.remove('hidden');
+        } else {
+            phoneText.innerText = '';
+            displayBlock.classList.add('hidden');
+        }
+    }
+
+    function handleSavePhoneContact(e) {
+        e.preventDefault();
+        footerPhone = document.getElementById('inputFooterPhone').value.trim();
+        localStorage.setItem('kenting_footer_phone', footerPhone);
+        renderPhoneContactUI();
+        alert('頁尾電話設定已更新！');
+    }
+
+    function renderCategoryUI() {
+        const navContainer = document.getElementById('navCategoriesList');
+        if (navContainer) {
+            navContainer.innerHTML = categoryList.map(cat => {
+                const isActive = (cat === currentFilterCategory);
+                const activeClass = isActive 
+                    ? "cat-btn border-b-2 border-ocean-700 text-ocean-700 font-bold px-3 py-1 rounded-t hover:bg-slate-100" 
+                    : "cat-btn border-b-2 border-transparent px-3 py-1 rounded-t hover:bg-slate-100";
+                return `<button onclick="filterCategory('${cat}')" class="${activeClass}">${cat}</button>`;
+            }).join('');
+        }
+
+        const selectElem = document.getElementById('inputCategory');
+        const categoryField = selectElem ? selectElem.closest('div') : null;
+        const selfMediaAccount = isReporterAuthenticated && !loggedInWithMaster && cloudLoginAccountType === 'self_media_creator';
+        if (selectElem) {
+            const selectableCats = categoryList.filter(c => c !== '主頁');
+            selectElem.innerHTML = selectableCats.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+            if (selfMediaAccount) {
+                selectElem.value = SELF_MEDIA_CATEGORY;
+                selectElem.disabled = true;
+                if (categoryField) categoryField.classList.add('hidden');
+            } else {
+                selectElem.disabled = false;
+                if (categoryField) categoryField.classList.remove('hidden');
+            }
+        }
+
+        const categoryManagerHeading = Array.from(document.querySelectorAll('h3')).find(el => el.textContent.includes('新聞分類動態管理'));
+        const categoryManagerCard = categoryManagerHeading ? categoryManagerHeading.closest('.bg-white') : null;
+        if (categoryManagerCard) {
+            categoryManagerCard.classList.toggle('hidden', selfMediaAccount);
+        }
+
+        const adminTagsContainer = document.getElementById('adminCategoryTags');
+        if (adminTagsContainer) {
+            adminTagsContainer.innerHTML = categoryList.map(cat => {
+                const isFixed = (cat === '主頁' || cat === '頭條' || cat === SELF_MEDIA_CATEGORY);
+                return `
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 border">
+                        ${cat}
+                        ${!isFixed ? `<button onclick="handleDeleteCategory('${cat}')" class="ml-1.5 text-slate-400 hover:text-red-600"><i class="fa-solid fa-xmark"></i></button>` : ''}
+                    </span>
+                `;
+            }).join('');
+        }
+    }
+
+    function applyAccountCategoryLock() {
+        const select = document.getElementById('inputCategory');
+        if (!select) return;
+        const selfMedia = isReporterAuthenticated && !loggedInWithMaster && cloudLoginAccountType === 'self_media_creator';
+        if (selfMedia) {
+            if (!categoryList.includes(SELF_MEDIA_CATEGORY)) categoryList.push(SELF_MEDIA_CATEGORY);
+            if (![...select.options].some(o => o.value === SELF_MEDIA_CATEGORY)) {
+                const opt = document.createElement('option'); opt.value = SELF_MEDIA_CATEGORY; opt.textContent = SELF_MEDIA_CATEGORY; select.appendChild(opt);
+            }
+            select.value = SELF_MEDIA_CATEGORY;
+            select.disabled = true;
+            select.title = '自媒體創作者的文章固定歸類於自媒體，無法更改';
+        } else {
+            select.disabled = false;
+            select.title = '';
+        }
+    }
+
+    function handleAddCategory(e) {
+        e.preventDefault();
+        const input = document.getElementById('newCategoryInput');
+        const newCat = input.value.trim();
+
+        if (!newCat) return;
+
+        if (categoryList.includes(newCat)) {
+            alert(`分類「${newCat}」已存在！`);
+            return;
+        }
+
+        categoryList.push(newCat);
+        saveCategoryData();
+        input.value = '';
+        renderCategoryUI();
+    }
+
+    function handleDeleteCategory(cat) {
+        if (confirm(`確定要刪除分類「${cat}」嗎？`)) {
+            categoryList = categoryList.filter(c => c !== cat);
+            saveCategoryData();
+            if (currentFilterCategory === cat) currentFilterCategory = '主頁';
+            renderCategoryUI();
+            renderNews();
+        }
+    }
+
+    function saveCategoryData() {
+        localStorage.setItem('kenting_news_categories', JSON.stringify(categoryList));
+    }
+
+    function switchTab(tab) {
+        const btnReader = document.getElementById('btnTabReader');
+        const btnReporter = document.getElementById('btnTabReporter');
+        const readerView = document.getElementById('readerView');
+        const authView = document.getElementById('authView');
+        const reporterView = document.getElementById('reporterView');
+        const categoryNav = document.getElementById('categoryNav');
+
+        if (tab === 'reader') {
+            btnReader.className = "px-5 py-2.5 rounded-xl font-extrabold text-base transition flex items-center space-x-2 bg-ocean-700 hover:bg-ocean-900 text-white shadow-md hover:shadow-lg transform active:scale-95";
+            btnReporter.className = "px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center space-x-1.5 bg-slate-200 text-slate-700 hover:bg-slate-300";
+            
+            readerView.classList.remove('hidden');
+            authView.classList.add('hidden');
+            reporterView.classList.add('hidden');
+            categoryNav.classList.remove('hidden');
+            renderNews();
+        } else {
+            btnReporter.className = "px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center space-x-1.5 bg-ocean-700 text-white shadow-sm";
+            btnReader.className = "px-5 py-2.5 rounded-xl font-extrabold text-base transition flex items-center space-x-2 bg-slate-200 text-slate-700 hover:bg-slate-300";
+
+            readerView.classList.add('hidden');
+            categoryNav.classList.add('hidden');
+
+            if (isReporterAuthenticated) {
+                authView.classList.add('hidden');
+                reporterView.classList.remove('hidden');
+                renderAdminNewsList();
+                renderCategoryUI();
+                renderPhoneContactUI();
+                updateLoginRoleUI();
+                updateCoverMode();
+    checkDraftOnLoad();
+            } else {
+                authView.classList.remove('hidden');
+                reporterView.classList.add('hidden');
+            }
+        }
+    }
+
+    async function handleAuthSubmit(e) {
+        e.preventDefault();
+        const inputPwd = document.getElementById('authPassword').value.trim();
+        const errorMsg = document.getElementById('authErrorMsg');
+        errorMsg.classList.add('hidden');
+
+        if (!inputPwd) return;
+
+        try {
+            const response = await fetch(CLOUD_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'login',
+                    password: inputPwd
+                })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || '登入失敗，請檢查密碼。');
+            }
+
+            cloudLoginPassword = inputPwd;
+            cloudLoginRole = result.role;
+            cloudLoginAccountType = result.accountType || 'official_reporter';
+            cloudLoginSubId = result.subId || '';
+            cloudRevision = result.revision || '';
+            isReporterAuthenticated = true;
+            // 先設定登入角色，再載入署名；否則主密碼登入時會誤讀 guest 的署名清單。
+            loggedInWithMaster = (result.role === 'master');
+            try { await loadBylinesFromCloud(); } catch (e) { console.warn('雲端署名載入失敗：', e); }
+            refreshBylineOptions();
+
+            document.getElementById('authPassword').value = '';
+
+            if (result.state) {
+                if (Array.isArray(result.state.news)) {
+                    newsData = result.state.news;
+                    localStorage.setItem('kenting_news_data', JSON.stringify(newsData));
+                }
+                if (Array.isArray(result.state.categories)) {
+                    categoryList = result.state.categories;
+                    if (!categoryList.includes(SELF_MEDIA_CATEGORY)) categoryList.push(SELF_MEDIA_CATEGORY);
+                    localStorage.setItem('kenting_news_categories', JSON.stringify(categoryList));
+                }
+                if (typeof result.state.phone === 'string') {
+                    footerPhone = result.state.phone;
+                    localStorage.setItem('kenting_footer_phone', footerPhone);
+                }
+                if (Array.isArray(result.state.subPasswords)) {
+                    subPasswordsData = result.state.subPasswords;
+                    localStorage.setItem('kenting_reporter_sub_pwds', JSON.stringify(subPasswordsData));
+                }
+            }
+
+            renderCategoryUI();
+            applyAccountCategoryLock();
+            renderPhoneContactUI();
+            renderNews();
+            applyAccountCategoryLock();
+            switchTab('reporter');
+        } catch (error) {
+            console.error('雲端登入警告 (切換至本機模式)：', error);
+            const localMaster = localStorage.getItem('kenting_reporter_pwd') || DEFAULT_MASTER_PWD;
+            if (inputPwd === localMaster || subPasswordsData.includes(inputPwd)) {
+                isReporterAuthenticated = true;
+                loggedInWithMaster = (inputPwd === localMaster);
+                cloudLoginAccountType = 'official_reporter';
+                cloudLoginSubId = '';
+                refreshBylineOptions();
+                cloudLoginPassword = inputPwd;
+                cloudLoginRole = loggedInWithMaster ? 'master' : 'sub';
+                document.getElementById('authPassword').value = '';
+                switchTab('reporter');
+                return;
+            }
+            errorMsg.querySelector('span').textContent = error.message || '密碼不正確，請重新輸入！';
+            errorMsg.classList.remove('hidden');
+        }
+    }
+
+    function updateLoginRoleUI() {
+        const badge = document.getElementById('loginRoleBadge');
+        if (loggedInWithMaster) {
+            badge.innerText = "目前登入權限：最高主管理員 (可刪除與管理副密碼)";
+            badge.className = "text-xs text-green-300 font-bold";
+        } else if (cloudLoginAccountType === 'self_media_creator') {
+            badge.innerText = "目前登入權限：自媒體創作者";
+            badge.className = "text-xs text-purple-300 font-bold";
+        } else {
+            badge.innerText = "目前登入權限：官方記者";
+            badge.className = "text-xs text-amber-300 font-bold";
+        }
+    }
+
+    function lockReporter() {
+        isReporterAuthenticated = false;
+        loggedInWithMaster = false;
+        switchTab('reporter');
+    }
+
+    function shuffleArray(array) {
+        let arr = [...array];
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    function articleCoverSource(article) {
+        if (article?.image === '__NO_COVER__') return '';
+        return article?.image || getDefaultImage(article?.category);
+    }
+
+    function getNewsTimestamp(item) {
+        const raw = item.publishedAt || item.createdAt || item.timestamp || item.date || '';
+        const parsed = Date.parse(raw);
+        // 舊文章若只有日期文字，按可解析的日期排序；無法解析者排在較後。
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function renderNews() {
+        const featuredSection = document.getElementById('featuredSection');
+        const newsGrid = document.getElementById('newsGrid');
+        const noNewsAlert = document.getElementById('noNewsAlert');
+        const newsCount = document.getElementById('newsCount');
+        const searchNotice = document.getElementById('searchNotice');
+        const searchNoticeText = document.getElementById('searchNoticeText');
+
+        let filtered = [];
+
+        if (currentFilterCategory === '主頁') {
+            // 自媒體文章只允許出現在自媒體專區，不進主頁/頭條焦點。
+            filtered = newsData
+                .filter(item => item.category !== SELF_MEDIA_CATEGORY && item.publisherType !== 'self_media_creator')
+                .sort((a, b) => getNewsTimestamp(b) - getNewsTimestamp(a));
+        } else {
+            filtered = newsData.filter(item => {
+                if (currentFilterCategory === '頭條') return item.category !== SELF_MEDIA_CATEGORY && item.publisherType !== 'self_media_creator' && (item.isFeatured || item.category === '頭條');
+                return item.category === currentFilterCategory;
+            });
+        }
+
+        // 各發文者採相同排序規則：依發布時間由新到舊，不按作者或帳號給予額外排序優先權。
+        filtered.sort((a, b) => getNewsTimestamp(b) - getNewsTimestamp(a));
+
+        if (currentSearchKeyword !== '') {
+            filtered = filtered.filter(item => 
+                item.title.toLowerCase().includes(currentSearchKeyword.toLowerCase()) || 
+                item.content.toLowerCase().includes(currentSearchKeyword.toLowerCase()) ||
+                (item.summary && item.summary.toLowerCase().includes(currentSearchKeyword.toLowerCase()))
+            );
+            searchNoticeText.innerText = `搜尋結果：關鍵字「${currentSearchKeyword}」`;
+            searchNotice.classList.remove('hidden');
+        } else {
+            searchNotice.classList.add('hidden');
+        }
+
+        newsCount.innerText = `共 ${filtered.length} 則新聞`;
+
+        if (filtered.length === 0) {
+            featuredSection.classList.add('hidden');
+            newsGrid.innerHTML = '';
+            noNewsAlert.classList.remove('hidden');
+            return;
+        } else {
+            noNewsAlert.classList.add('hidden');
+        }
+
+        let featuredArticle = currentFilterCategory === SELF_MEDIA_CATEGORY ? null : (filtered.find(a => a.isFeatured) || filtered[0]);
+
+        if (featuredArticle && currentSearchKeyword === '') {
+            featuredSection.classList.remove('hidden');
+            featuredSection.innerHTML = `
+                ${featuredArticle.image === '__NO_COVER__' ? '' : `<div class="lg:col-span-7 relative h-64 lg:h-96 overflow-hidden bg-slate-900 group cursor-pointer" onclick="openArticleModal('${featuredArticle.id}')">
+                    <img src="${articleCoverSource(featuredArticle)}" alt="${featuredArticle.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500 opacity-90">
+                    <div class="absolute top-4 left-4 bg-red-600 text-white font-bold text-xs px-3 py-1 rounded-full shadow flex items-center">
+                        <i class="fa-solid fa-fire mr-1"></i> 頭條焦點
+                    </div>
+                </div>`}
+                <div class="${featuredArticle.image === '__NO_COVER__' ? 'lg:col-span-12' : 'lg:col-span-5'} p-6 lg:p-8 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center space-x-2 text-xs text-ocean-700 font-bold mb-2">
+                            <span class="bg-ocean-100 px-2.5 py-0.5 rounded">${featuredArticle.category}</span>
+                            <span>• ${featuredArticle.date}</span>
+                        </div>
+                        <h2 class="text-2xl font-black font-serif text-slate-900 hover:text-ocean-700 cursor-pointer transition leading-snug mb-3" onclick="openArticleModal('${featuredArticle.id}')">
+                            ${featuredArticle.title}
+                        </h2>
+                        <p class="text-xs text-slate-600 line-clamp-4 leading-relaxed mb-4">
+                            ${featuredArticle.summary || featuredArticle.content.substring(0, 120) + '...'}
+                        </p>
+                    </div>
+                    <div class="flex items-center justify-between border-t pt-4 text-xs text-slate-500">
+                        <span><i class="fa-solid fa-user-pen mr-1"></i>${featuredArticle.author}</span>
+                        <button onclick="openArticleModal('${featuredArticle.id}')" class="text-ocean-700 font-bold hover:underline flex items-center">
+                            閱讀全文 <i class="fa-solid fa-arrow-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        } else {
+            featuredSection.classList.add('hidden');
+        }
+
+        const gridArticles = (featuredArticle && currentSearchKeyword === '') ? filtered.filter(a => a.id !== featuredArticle.id) : filtered;
+
+        newsGrid.innerHTML = gridArticles.map(article => `
+            <article class="bg-white rounded-xl shadow border border-slate-200 overflow-hidden flex flex-col hover:shadow-lg transition duration-300">
+                ${article.image === '__NO_COVER__' ? '' : `<div class="relative h-48 overflow-hidden group cursor-pointer" onclick="openArticleModal('${article.id}')">
+                    <img src="${articleCoverSource(article)}" alt="${article.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                    <span class="absolute top-3 left-3 bg-slate-900/80 text-white text-[11px] font-bold px-2.5 py-0.5 rounded">
+                        ${article.category}
+                    </span>
+                </div>`}
+                <div class="p-5 flex-1 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-base font-bold font-serif text-slate-900 hover:text-ocean-700 cursor-pointer transition line-clamp-2 mb-2 leading-snug" onclick="openArticleModal('${article.id}')">
+                            ${article.title}
+                        </h3>
+                        <p class="text-xs text-slate-600 line-clamp-3 leading-relaxed mb-4">
+                            ${article.summary || article.content.substring(0, 80) + '...'}
+                        </p>
+                    </div>
+                    <div class="flex items-center justify-between border-t pt-3 text-xs text-slate-500 mt-auto">
+                        <span><i class="fa-solid fa-user-pen mr-1"></i>${article.author}</span>
+                        <button onclick="openArticleModal('${article.id}')" class="text-ocean-700 font-bold hover:underline">詳細報導</button>
+                    </div>
+                </div>
+            </article>
+        `).join('');
+    }
+
+    function canManageArticle(article) {
+        if (loggedInWithMaster) return true;
+        if (!isReporterAuthenticated) return false;
+        if (cloudLoginAccountType === 'self_media_creator') {
+            return article.publisherType === 'self_media_creator' &&
+                String(article.createdBySubId || '') === String(cloudLoginSubId || '');
+        }
+        // Official reporters can manage only their own published articles as well.
+        return String(article.createdBySubId || '') === String(cloudLoginSubId || '');
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, char => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[char]));
+    }
+
+    function renderAdminNewsList() {
+        const listContainer = document.getElementById('adminNewsList');
+        if (!listContainer) return;
+        const manageableNews = loggedInWithMaster
+            ? newsData
+            : newsData.filter(item => canManageArticle(item));
+        if (manageableNews.length === 0) {
+            listContainer.innerHTML = `<p class="text-xs text-slate-400 text-center py-8">目前沒有可由此帳號管理的新聞稿件</p>`;
+            return;
+        }
+        listContainer.innerHTML = manageableNews.map(item => `
+            <div class="bg-slate-50 p-4 rounded-lg border flex flex-wrap justify-between items-center gap-2">
+                <div class="min-w-0 flex-1">
+                    <div class="font-bold text-sm break-words">${escapeHtml(item.title || '未命名文章')}</div>
+                    <div class="text-[10px] text-slate-500 mt-1">${escapeHtml(item.category || '')} · ${escapeHtml(item.author || '')}</div>
+                </div>
+                <div class="flex gap-2 shrink-0">
+                    <button type="button" onclick="editArticle('${String(item.id).replace(/'/g, "\\'")}')" class="rounded bg-ocean-700 hover:bg-ocean-900 text-white px-3 py-1.5 text-xs font-bold">編輯</button>
+                    <button type="button" onclick="deleteNews('${String(item.id).replace(/'/g, "\\'")}')" class="rounded bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 text-xs font-bold">刪除</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function filterCategory(cat) {
+        currentFilterCategory = cat;
+        document.getElementById('currentCategoryTitle').innerText = cat === '主頁' ? '主頁動態新聞' : `${cat} 新聞`;
+        renderCategoryUI();
+        renderNews();
+    }
+
+    const AD_TEMPLATES_KEY = 'kenting_news_ad_templates_v1';
+
+    function readAdTemplates() {
+        try {
+            const value = JSON.parse(localStorage.getItem(AD_TEMPLATES_KEY) || '[]');
+            return Array.isArray(value) ? value : [];
+        } catch (_) { return []; }
+    }
+
+    function refreshAdTemplateSelect() {
+        const select = document.getElementById('adTemplateSelect');
+        if (!select) return;
+        const selected = select.value;
+        const templates = readAdTemplates();
+        select.innerHTML = '<option value="">選擇已儲存的廣告範本</option>';
+        templates.forEach((template, index) => {
+            const option = document.createElement('option');
+            option.value = String(index);
+            option.textContent = template.name || `廣告範本 ${index + 1}`;
+            select.appendChild(option);
+        });
+        if (selected && Number(selected) < templates.length) select.value = selected;
+    }
+
+    function addAdEditorRow(ad = {}) {
+        const list = document.getElementById('adEditorList');
+        if (!list) return;
+        if (list.children.length >= 10) {
+            alert('每篇新聞最多只能設定 10 個候選廣告。');
+            return;
+        }
+        const row = document.createElement('div');
+        row.className = 'ad-editor-row bg-white border border-amber-200 rounded-lg p-3 space-y-2';
+        row.innerHTML = `
+            <div class="flex items-center justify-between gap-2">
+                <span class="ad-row-number text-xs font-bold text-amber-900">候選廣告</span>
+                <button type="button" class="text-red-600 hover:text-red-800 text-xs font-bold" data-action="remove-ad">移除此廣告</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <label class="text-[11px] font-bold text-slate-600">廣告名稱
+                    <input data-field="title" type="text" maxlength="100" class="mt-1 w-full border rounded px-2 py-1.5 text-xs" placeholder="例如：校園活動宣傳">
+                </label>
+                <label class="text-[11px] font-bold text-slate-600">出現機率（0–100）
+                    <input data-field="probability" type="number" min="0" max="100" step="any" value="10" class="mt-1 w-full border rounded px-2 py-1.5 text-xs">
+                </label>
+                <label class="text-[11px] font-bold text-slate-600">廣告圖片網址（可留空）
+                    <input data-field="image" type="url" class="mt-1 w-full border rounded px-2 py-1.5 text-xs" placeholder="https://...">
+                </label>
+                <label class="text-[11px] font-bold text-slate-600">點擊前往網址（可留空）
+                    <input data-field="link" type="url" class="mt-1 w-full border rounded px-2 py-1.5 text-xs" placeholder="https://...">
+                </label>
+                <label class="text-[11px] font-bold text-slate-600">版型
+                    <select data-field="layout" class="mt-1 w-full border rounded px-2 py-1.5 text-xs bg-white">
+                        <option value="card">圖文卡片</option>
+                        <option value="banner">橫幅廣告</option>
+                        <option value="text">純文字廣告</option>
+                    </select>
+                </label>
+                <label class="text-[11px] font-bold text-slate-600">廣告說明文字
+                    <input data-field="description" type="text" maxlength="300" class="mt-1 w-full border rounded px-2 py-1.5 text-xs" placeholder="簡短介紹或宣傳內容">
+                </label>
+            </div>`;
+        row.querySelector('[data-field="title"]').value = ad.title || '';
+        row.querySelector('[data-field="probability"]').value = ad.probability ?? 10;
+        row.querySelector('[data-field="image"]').value = ad.image || '';
+        row.querySelector('[data-field="link"]').value = ad.link || '';
+        row.querySelector('[data-field="layout"]').value = ['card','banner','text'].includes(ad.layout) ? ad.layout : 'card';
+        row.querySelector('[data-field="description"]').value = ad.description || '';
+        row.querySelector('[data-action="remove-ad"]').addEventListener('click', () => { row.remove(); updateAdEditorMeta(); });
+        list.appendChild(row);
+        updateAdEditorMeta();
+    }
+
+    function updateAdEditorMeta() {
+        const list = document.getElementById('adEditorList');
+        if (!list) return;
+        [...list.querySelectorAll('.ad-editor-row')].forEach((row, index) => {
+            row.querySelector('.ad-row-number').textContent = `候選廣告 ${index + 1}`;
+        });
+        const count = list.children.length;
+        const badge = document.getElementById('adCountBadge');
+        if (badge) badge.textContent = `${count} / 10`;
+        const addButton = document.getElementById('addAdRowBtn');
+        if (addButton) addButton.disabled = count >= 10;
+    }
+
+    function collectArticleAds() {
+        const rows = [...document.querySelectorAll('#adEditorList .ad-editor-row')];
+        const items = [];
+        let total = 0;
+        for (let index = 0; index < rows.length; index++) {
+            const row = rows[index];
+            const read = field => row.querySelector(`[data-field="${field}"]`).value.trim();
+            const title = read('title');
+            const probabilityRaw = read('probability');
+            const probability = Number(probabilityRaw);
+            const image = read('image');
+            const link = read('link');
+            const description = read('description');
+            const layout = read('layout');
+            if (!title && !image && !link && !description) {
+                return { valid: false, error: `候選廣告 ${index + 1} 尚未填寫內容。若不需要，請移除該廣告。` };
+            }
+            if (!probabilityRaw || !Number.isFinite(probability) || probability < 0 || probability > 100) {
+                return { valid: false, error: `候選廣告 ${index + 1} 的機率必須介於 0 到 100。` };
+            }
+            if (image && !isHttpUrl(image)) return { valid: false, error: `候選廣告 ${index + 1} 的圖片網址必須使用 http:// 或 https://。` };
+            if (link && !isHttpUrl(link)) return { valid: false, error: `候選廣告 ${index + 1} 的連結必須使用 http:// 或 https://。` };
+            total += probability;
+            items.push({ title: title || '贊助廣告', probability, image, link, description, layout });
+        }
+        if (total > 100 + 1e-9) return { valid: false, error: `所有廣告的機率合計為 ${total}%，不得超過 100%。` };
+        return { valid: true, items };
+    }
+
+    function isHttpUrl(value) {
+        try { const u = new URL(value); return u.protocol === 'http:' || u.protocol === 'https:'; }
+        catch (_) { return false; }
+    }
+
+    function saveCurrentAdAsTemplate() {
+        const result = collectArticleAds();
+        if (!result.valid) { alert(result.error); return; }
+        if (!result.items.length) { alert('請先新增至少一個候選廣告，再儲存範本。'); return; }
+        const name = prompt('請為這組廣告範本命名：', `廣告範本 ${readAdTemplates().length + 1}`);
+        if (!name || !name.trim()) return;
+        const templates = readAdTemplates();
+        templates.push({ name: name.trim().slice(0, 80), ads: result.items });
+        localStorage.setItem(AD_TEMPLATES_KEY, JSON.stringify(templates));
+        refreshAdTemplateSelect();
+        alert('廣告範本已儲存在這台裝置的瀏覽器，可供之後建立新聞時重複使用。');
+    }
+
+    function applySelectedAdTemplate() {
+        const select = document.getElementById('adTemplateSelect');
+        const index = Number(select.value);
+        const templates = readAdTemplates();
+        if (!select.value || !templates[index]) { alert('請先選擇一個廣告範本。'); return; }
+        const list = document.getElementById('adEditorList');
+        list.innerHTML = '';
+        (templates[index].ads || []).slice(0, 10).forEach(ad => addAdEditorRow(ad));
+        updateAdEditorMeta();
+    }
+
+    function renderRandomArticleAd(ads) {
+        const container = document.getElementById('articleAdContainer');
+        const content = document.getElementById('articleAdContent');
+        content.innerHTML = '';
+        container.classList.add('hidden');
+        if (!Array.isArray(ads) || !ads.length) return;
+        const eligible = ads.map(ad => ({ ...ad, probability: Number(ad.probability) }))
+            .filter(ad => Number.isFinite(ad.probability) && ad.probability > 0);
+        const total = eligible.reduce((sum, ad) => sum + ad.probability, 0);
+        if (!eligible.length || total <= 0) return;
+        let roll = Math.random() * 100;
+        let cumulative = 0;
+        let chosen = null;
+        for (const ad of eligible) {
+            cumulative += ad.probability;
+            if (roll < cumulative) { chosen = ad; break; }
+        }
+        if (!chosen) return; // Remaining probability intentionally means no ad.
+
+        const box = document.createElement('div');
+        const layout = ['card','banner','text'].includes(chosen.layout) ? chosen.layout : 'card';
+        box.className = layout === 'banner'
+            ? 'rounded-xl border border-slate-200 bg-slate-50 overflow-hidden text-center'
+            : layout === 'text'
+                ? 'rounded-xl border border-slate-200 bg-slate-50 p-4'
+                : 'rounded-xl border border-slate-200 bg-white p-4 shadow-sm';
+        const title = document.createElement('h3');
+        title.className = 'font-bold text-slate-900 text-base mb-2';
+        title.textContent = chosen.title || '贊助廣告';
+        const addTitle = () => box.appendChild(title);
+        const makeLink = element => {
+            if (!chosen.link || !isHttpUrl(chosen.link)) return element;
+            const anchor = document.createElement('a');
+            anchor.href = chosen.link;
+            anchor.target = '_blank';
+            anchor.rel = 'noopener noreferrer sponsored';
+            anchor.className = 'block hover:opacity-90';
+            anchor.appendChild(element);
+            return anchor;
+        };
+        if (layout === 'banner' && chosen.image) {
+            const img = document.createElement('img');
+            img.src = chosen.image; img.alt = chosen.title || '贊助廣告';
+            img.className = 'w-full max-h-64 object-contain bg-slate-100';
+            img.loading = 'lazy';
+            box.appendChild(makeLink(img));
+            addTitle();
+        } else {
+            addTitle();
+            if (chosen.image) {
+                const img = document.createElement('img');
+                img.src = chosen.image; img.alt = chosen.title || '贊助廣告';
+                img.className = layout === 'banner' ? 'w-full max-h-64 object-contain' : 'w-full max-h-72 object-contain rounded-lg mb-3';
+                img.loading = 'lazy';
+                box.appendChild(makeLink(img));
+            }
+        }
+        if (chosen.description) {
+            const desc = document.createElement('p');
+            desc.className = 'text-sm text-slate-600 whitespace-pre-line';
+            desc.textContent = chosen.description;
+            box.appendChild(desc);
+        }
+        if (chosen.link && isHttpUrl(chosen.link)) {
+            const cta = document.createElement('a');
+            cta.href = chosen.link; cta.target = '_blank';
+            cta.rel = 'noopener noreferrer sponsored';
+            cta.className = 'inline-block mt-3 text-sm font-bold text-ocean-700 underline';
+            cta.textContent = '前往查看';
+            box.appendChild(cta);
+        }
+        content.appendChild(box);
+        container.classList.remove('hidden');
+    }
+
+    function initAdEditor() {
+        refreshAdTemplateSelect();
+        updateAdEditorMeta();
+    }
+
+    function previewSelectedMedia() {
+        const input = document.getElementById('inputMediaFiles');
+        const preview = document.getElementById('selectedMediaPreview');
+        const files = Array.from(input.files || []);
+        preview.innerHTML = '';
+        if (files.length > 10) {
+            alert('每篇新聞最多只能選擇 10 個媒體檔案。');
+            input.value = '';
+            return;
+        }
+        files.forEach((file, index) => {
+            const row = document.createElement('div');
+            row.textContent = `${index + 1}. ${file.name}（${(file.size / 1024 / 1024).toFixed(2)} MB）`;
+            preview.appendChild(row);
+        });
+    }
+
+    async function uploadNewsMedia(file, newsId) {
+        const formData = new FormData();
+        formData.append('action', 'upload_media');
+        formData.append('password', cloudLoginPassword);
+        formData.append('newsId', newsId);
+        formData.append('file', file, file.name);
+        const response = await fetch(CLOUD_API_URL, { method: 'POST', body: formData });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.url) {
+            throw new Error(result.error || `上傳「${file.name}」失敗。`);
+        }
+        return { url: result.url, path: result.path, name: result.name || file.name, type: result.type || file.type || 'application/octet-stream', size: result.size || file.size };
+    }
+
+    function updateCoverMode() {
+        const noCover = document.getElementById('inputNoCover')?.checked || false;
+        const selected = document.querySelector('input[name="coverMode"]:checked')?.value || 'default';
+        const urlWrap = document.getElementById('coverUrlWrap');
+        const uploadWrap = document.getElementById('coverUploadWrap');
+        const urlInput = document.getElementById('inputImage');
+        const fileInput = document.getElementById('inputCoverFile');
+        if (urlWrap) urlWrap.classList.toggle('hidden', noCover || selected !== 'url');
+        if (uploadWrap) uploadWrap.classList.toggle('hidden', noCover || selected !== 'upload');
+        if (urlInput) urlInput.disabled = noCover || selected !== 'url';
+        if (fileInput) fileInput.disabled = noCover || selected !== 'upload';
+    }
+
+    async function handleFormSubmit(e) {
+        e.preventDefault();
+        const submitBtn = document.getElementById('submitBtn');
+        if (submitBtn.disabled) return;
+        const selectedFiles = Array.from(document.getElementById('inputMediaFiles').files || []);
+        if (selectedFiles.length > 10) { alert('每篇新聞最多只能選擇 10 個媒體檔案。'); return; }
+        const oversized = selectedFiles.find(file => file.size <= 0 || file.size > 50 * 1024 * 1024);
+        if (oversized) { alert(`檔案「${oversized.name}」為空檔或超過 50 MB，請移除後再發布。`); return; }
+        if (selectedFiles.length && (!isReporterAuthenticated || !cloudLoginPassword)) {
+            alert('上傳媒體前請先登入記者後台。'); return;
+        }
+
+        const title = document.getElementById('inputTitle').value.trim();
+        const selfMediaAccount = isReporterAuthenticated && !loggedInWithMaster && cloudLoginAccountType === 'self_media_creator';
+        const category = selfMediaAccount ? SELF_MEDIA_CATEGORY : document.getElementById('inputCategory').value;
+        const author = document.getElementById('inputAuthor').value.trim();
+        if (!author) { alert('請先透過「管理署名」新增至少一個署名，再選擇本篇文章的署名。'); return; }
+        const coverMode = document.querySelector('input[name="coverMode"]:checked')?.value || 'default';
+        const noCover = document.getElementById('inputNoCover').checked;
+        let image = noCover ? '__NO_COVER__' : (coverMode === 'url' ? document.getElementById('inputImage').value.trim() : '');
+        const coverFile = (!noCover && coverMode === 'upload') ? document.getElementById('inputCoverFile').files?.[0] : null;
+        if (coverMode === 'url' && !noCover && !image) { alert('請輸入封面圖片網址，或改選其他封面方式。'); return; }
+        if (coverMode === 'upload' && !noCover && !coverFile) { alert('請選擇要上傳的封面圖片，或改選其他封面方式。'); return; }
+        if (coverFile && (!coverFile.type.startsWith('image/') || coverFile.size <= 0 || coverFile.size > 50 * 1024 * 1024)) { alert('封面必須是有效圖片，且不得超過 50 MB。'); return; }
+        const summary = document.getElementById('inputSummary').value.trim();
+        const content = document.getElementById('inputContent').value.trim();
+        const isFeatured = selfMediaAccount ? false : document.getElementById('inputIsFeatured').checked;
+        const ads = collectArticleAds();
+        if (!ads.valid) { alert(ads.error); return; }
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+        const editingId = document.getElementById('editArticleId').value;
+        const existingArticle = editingId ? newsData.find(item => String(item.id) === String(editingId)) : null;
+        if (editingId && (!existingArticle || (!loggedInWithMaster && !canManageArticle(existingArticle)))) {
+            alert('無權編輯這篇文章，或文章已不存在。');
+            return;
+        }
+        const newsId = editingId || ('news-' + Date.now());
+        submitBtn.disabled = true;
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.innerHTML = editingId ? '<i class="fa-solid fa-spinner fa-spin mr-2"></i> 正在儲存修改…' : '<i class="fa-solid fa-spinner fa-spin mr-2"></i> 正在上傳並發布…';
+        try {
+            const media = existingArticle && Array.isArray(existingArticle.media) ? existingArticle.media.slice() : [];
+            if (coverFile) {
+                submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> 正在上傳封面圖片…';
+                const uploadedCover = await uploadNewsMedia(coverFile, newsId + '-cover');
+                image = uploadedCover.url;
+            } else if (editingId && coverMode === 'default' && !noCover) {
+                // 編輯時若封面仍選擇系統預設，保留原本封面，避免無意間清除。
+                image = existingArticle.image || '';
+            }
+            for (let i = 0; i < selectedFiles.length; i++) {
+                submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i> 上傳媒體 ${i + 1}/${selectedFiles.length}…`;
+                media.push(await uploadNewsMedia(selectedFiles[i], newsId));
+            }
+            let articleToSave;
+            if (editingId) {
+                articleToSave = {
+                    ...existingArticle, title, category, author, image, summary, content,
+                    date: dateStr, isFeatured, media, ads: ads.items
+                };
+                if (selfMediaAccount) {
+                    articleToSave.category = SELF_MEDIA_CATEGORY;
+                    articleToSave.isFeatured = false;
+                }
+                newsData = newsData.map(item => String(item.id) === String(editingId) ? articleToSave : item);
+            } else {
+                articleToSave = { id: newsId, title, category, author, date: dateStr, image, summary, content, views: 1, isFeatured, media, ads: ads.items, ...(isReporterAuthenticated && !loggedInWithMaster ? { createdBySubId: cloudLoginSubId, publisherType: selfMediaAccount ? 'self_media_creator' : 'official_reporter' } : { publisherType: 'master' }) };
+                newsData.unshift(articleToSave);
+            }
+            if (articleToSave.isFeatured) newsData.forEach(n => { if (String(n.id) !== String(articleToSave.id)) n.isFeatured = false; });
+            await saveNewsData();
+            clearDraft();
+            resetForm();
+            renderNews();
+            renderAdminNewsList();
+            alert(editingId ? '文章修改已儲存！' : '新聞稿已成功發布！');
+        } catch (error) {
+            console.error('新聞發布／媒體上傳失敗：', error);
+            alert('發布失敗：' + (error?.message || '未知錯誤') + '\n請確認網路與登入狀態。已成功上傳的檔案可能仍留在 Storage；請修正後重試。');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+        }
+    }
+
+    function editArticle(id) {
+        if (!isReporterAuthenticated || !cloudLoginPassword) {
+            alert('請先登入記者後台，再編輯文章。');
+            return;
+        }
+        const article = newsData.find(item => String(item.id) === String(id));
+        if (!article) { alert('找不到這篇文章，請重新整理後再試。'); return; }
+        if (!loggedInWithMaster && !canManageArticle(article)) {
+            alert('你只能編輯自己發布的文章，無權修改此文章。');
+            return;
+        }
+        if (!loggedInWithMaster && cloudLoginAccountType === 'self_media_creator' &&
+            (article.publisherType !== 'self_media_creator' || article.category !== SELF_MEDIA_CATEGORY)) {
+            alert('自媒體創作者只能編輯自己發布的自媒體文章。');
+            return;
+        }
+
+        document.getElementById('editArticleId').value = String(article.id);
+        document.getElementById('inputTitle').value = article.title || '';
+        renderCategoryUI();
+        document.getElementById('inputCategory').value = article.category || SELF_MEDIA_CATEGORY;
+        refreshBylineOptions(article.author || '');
+        document.getElementById('inputSummary').value = article.summary || '';
+        document.getElementById('inputContent').value = article.content || '';
+        document.getElementById('inputIsFeatured').checked = !!article.isFeatured;
+
+        const noCover = article.image === '__NO_COVER__';
+        document.getElementById('inputNoCover').checked = noCover;
+        document.getElementById('inputImage').value = (!noCover && article.image && article.image !== '__DEFAULT__') ? article.image : '';
+        const coverMode = document.querySelector(`input[name="coverMode"][value="${(!noCover && article.image && article.image !== '__DEFAULT__') ? 'url' : 'default'}"]`);
+        if (coverMode) coverMode.checked = true;
+        document.getElementById('inputCoverFile').value = '';
+        document.getElementById('inputMediaFiles').value = '';
+        document.getElementById('selectedMediaPreview').innerHTML =
+            `<p class="text-sky-700">目前保留 ${Array.isArray(article.media) ? article.media.length : 0} 個既有媒體。若選擇新檔案，將追加到原有媒體。</p>`;
+        updateCoverMode();
+
+        document.getElementById('adEditorList').innerHTML = '';
+        const ads = Array.isArray(article.ads) ? article.ads : [];
+        ads.forEach(ad => addAdEditorRow(ad));
+        updateAdEditorMeta();
+
+        document.getElementById('formModeTitle').textContent = '編輯已發布文章';
+        document.getElementById('submitBtn').innerHTML = '<i class="fa-solid fa-floppy-disk mr-2"></i> 儲存文章修改';
+        document.getElementById('cancelEditBtn').classList.remove('hidden');
+        document.getElementById('newsForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function resetForm() {
+        document.getElementById('newsForm').reset();
+        document.getElementById('editArticleId').value = '';
+        const mediaPreview = document.getElementById('selectedMediaPreview');
+        if (mediaPreview) mediaPreview.innerHTML = '';
+        const title = document.getElementById('formModeTitle');
+        if (title) title.textContent = '發布新新聞稿';
+        const submit = document.getElementById('submitBtn');
+        if (submit) submit.innerHTML = '<i class="fa-solid fa-paper-plane mr-2"></i> 發布新聞稿';
+        const cancel = document.getElementById('cancelEditBtn');
+        if (cancel) cancel.classList.add('hidden');
+        document.getElementById('adEditorList').innerHTML = '';
+        initAdEditor();
+        renderCategoryUI();
+        refreshBylineOptions();
+        updateCoverMode();
+    }
+
+    async function deleteNews(id) {
+        const target = newsData.find(n => String(n.id) === String(id));
+        if (!target) return;
+        if (!loggedInWithMaster && !canManageArticle(target)) {
+            alert('你只能管理自己發布的文章，無權刪除此文章。');
+            return;
+        }
+        if (confirm('確定要刪除這篇文章嗎？')) {
+            newsData = newsData.filter(n => String(n.id) !== String(id));
+            await saveNewsData();
+            renderNews();
+            renderAdminNewsList();
+        }
+    }
+
+    function clearAllNewsPrompt() {
+        if (confirm('重置為預設範例新聞？')) {
+            newsData = DEFAULT_NEWS;
+            categoryList = DEFAULT_CATEGORIES;
+            saveNewsData();
+            saveCategoryData();
+            renderCategoryUI();
+            renderAdminNewsList();
+        }
+    }
+
+    let activeCommentArticleId = null;
+    let commentCache = {};
+
+    async function loadArticleComments(articleId) {
+        const list = document.getElementById('articleCommentsList');
+        if (list) list.innerHTML = '<p class="text-sm text-slate-400 py-2">留言載入中…</p>';
+        try {
+            const response = await fetch(CLOUD_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'comments_list', articleId })
+            });
+            const result = await response.json();
+            if (!response.ok || result.error) throw new Error(result.error || '留言載入失敗');
+            commentCache[articleId] = Array.isArray(result.comments) ? result.comments : [];
+        } catch (error) {
+            console.error('留言載入失敗：', error);
+            commentCache[articleId] = [];
+            if (list) list.innerHTML = '<p class="text-sm text-rose-500 py-2">留言載入失敗，請稍後重新整理。</p>';
+            return;
+        }
+        renderArticleComments(articleId);
+    }
+
+    function renderArticleComments(articleId) {
+        const list = document.getElementById('articleCommentsList');
+        if (!list) return;
+        list.innerHTML = '';
+        const comments = Array.isArray(commentCache[articleId]) ? commentCache[articleId] : [];
+        if (!comments.length) {
+            const empty = document.createElement('p');
+            empty.className = 'text-sm text-slate-400 py-2';
+            empty.textContent = '目前還沒有留言，歡迎成為第一位留言者。';
+            list.appendChild(empty);
+            return;
+        }
+        comments.slice().sort((a, b) => Date.parse(a.createdAt || '') - Date.parse(b.createdAt || '')).forEach(comment => {
+            const card = document.createElement('div');
+            card.className = 'rounded-xl border border-slate-200 bg-slate-50 p-3';
+            const header = document.createElement('div');
+            header.className = 'flex flex-wrap justify-between gap-2 mb-1';
+            const author = document.createElement('span');
+            author.className = 'font-bold text-sm text-slate-800';
+            author.textContent = comment.author || '匿名讀者';
+            const date = document.createElement('time');
+            date.className = 'text-xs text-slate-400';
+            date.textContent = comment.date || '';
+            const body = document.createElement('p');
+            body.className = 'text-sm text-slate-700 whitespace-pre-wrap break-words';
+            body.textContent = comment.content || '';
+            header.append(author, date);
+            card.append(header, body);
+            list.appendChild(card);
+        });
+    }
+
+    async function submitArticleComment(event) {
+        event.preventDefault();
+        if (!activeCommentArticleId) { alert('請先開啟一篇文章。'); return; }
+        const authorInput = document.getElementById('commentAuthorInput');
+        const contentInput = document.getElementById('commentContentInput');
+        const submitButton = event.submitter || event.target.querySelector('button[type="submit"]');
+        const author = authorInput.value.trim();
+        const content = contentInput.value.trim();
+        if (!author || !content) { alert('請填寫署名及留言內容。'); return; }
+        if (author.length > 40 || content.length > 2000) { alert('署名最多 40 字，留言最多 2000 字。'); return; }
+        if (submitButton) { submitButton.disabled = true; submitButton.textContent = '送出中…'; }
+        try {
+            const response = await fetch(CLOUD_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'comments_add',
+                    articleId: activeCommentArticleId,
+                    author,
+                    content
+                })
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || result.error) throw new Error(result.error || '留言送出失敗');
+            contentInput.value = '';
+            await loadArticleComments(activeCommentArticleId);
+        } catch (error) {
+            alert('留言送出失敗：' + (error.message || '請稍後再試'));
+        } finally {
+            if (submitButton) { submitButton.disabled = false; submitButton.textContent = '發表留言'; }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('articleCommentForm');
+        if (form) form.addEventListener('submit', submitArticleComment);
+    });
+
+    function openArticleModal(id) {
+        const article = newsData.find(n => n.id === id);
+        if (!article) return;
+        activeCommentArticleId = id;
+        document.getElementById('modalCategory').innerText = article.category;
+        document.getElementById('modalTitle').innerText = article.title;
+        document.getElementById('modalAuthor').innerHTML = `<i class="fa-solid fa-user-pen mr-1"></i> ${article.author}`;
+        document.getElementById('modalDate').innerHTML = `<i class="fa-regular fa-calendar-check mr-1"></i> ${article.date}`;
+        document.getElementById('modalContent').innerText = article.content;
+        const modalImage = document.getElementById('modalImage');
+        const modalImageContainer = document.getElementById('modalImageContainer');
+        if (article.image && article.image !== '__NO_COVER__') {
+            modalImage.src = article.image;
+            modalImageContainer.classList.remove('hidden');
+        } else {
+            modalImage.removeAttribute('src');
+            modalImageContainer.classList.add('hidden');
+        }
+        const mediaContainer = document.getElementById('modalMediaContainer');
+        mediaContainer.innerHTML = '';
+        (Array.isArray(article.media) ? article.media : []).forEach((mediaItem) => {
+            if (!mediaItem || !mediaItem.url) return;
+            const wrapper = document.createElement('div');
+            wrapper.className = 'rounded-xl overflow-hidden border border-slate-200 p-3 bg-slate-50';
+            const label = document.createElement('p');
+            label.className = 'text-xs font-bold text-slate-600 mb-2';
+            label.textContent = mediaItem.name || '新聞媒體';
+            wrapper.appendChild(label);
+            let player;
+            const type = String(mediaItem.type || '').toLowerCase();
+            if (type.startsWith('image/')) {
+                player = document.createElement('img');
+                player.alt = mediaItem.name || '新聞圖片';
+                player.className = 'w-full max-h-[32rem] object-contain rounded';
+                player.loading = 'lazy';
+            } else if (type.startsWith('video/')) {
+                player = document.createElement('video');
+                player.controls = true;
+                player.preload = 'metadata';
+                player.className = 'w-full max-h-[32rem] rounded';
+            } else if (type.startsWith('audio/')) {
+                player = document.createElement('audio');
+                player.controls = true;
+                player.preload = 'metadata';
+                player.className = 'w-full';
+            } else {
+                const link = document.createElement('a');
+                link.href = mediaItem.url;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.className = 'text-ocean-700 underline text-sm';
+                link.textContent = '開啟媒體檔案';
+                wrapper.appendChild(link);
+                mediaContainer.appendChild(wrapper);
+                return;
+            }
+            player.src = mediaItem.url;
+            if (player.tagName === 'VIDEO' || player.tagName === 'AUDIO') player.setAttribute('playsinline', '');
+            wrapper.appendChild(player);
+            mediaContainer.appendChild(wrapper);
+        });
+        renderRandomArticleAd(article.ads || []);
+        document.getElementById('articleModal').classList.remove('hidden');
+        loadArticleComments(id);
+    }
+
+    function closeArticleModal() {
+        document.getElementById('articleModal').classList.add('hidden');
+    }
+
+    function togglePasswordModal() {
+        const modal = document.getElementById('passwordModal');
+        const isMaster = !!(loggedInWithMaster && cloudLoginRole === 'master');
+        document.getElementById('masterPasswordSection')?.classList.toggle('hidden', !isMaster);
+        document.getElementById('subPasswordAdminSection')?.classList.toggle('hidden', !isMaster);
+        document.getElementById('subPasswordDivider')?.classList.toggle('hidden', !isMaster);
+        document.getElementById('subOwnPasswordSection')?.classList.toggle('hidden', isMaster || !isReporterAuthenticated || !['sub', 'reporter'].includes(cloudLoginRole));
+        renderSubPasswordList();
+        modal.classList.toggle('hidden');
+    }
+
+    async function handleChangeOwnSubPassword(event) {
+        event.preventDefault();
+        const oldPassword = document.getElementById('ownSubPwdOld').value;
+        const newPassword = document.getElementById('ownSubPwdNew').value;
+        const confirmPassword = document.getElementById('ownSubPwdConfirm').value;
+        const msg = document.getElementById('ownSubPwdMsg');
+        const show = (text, ok) => { msg.textContent = text; msg.className = 'text-xs p-2 rounded border ' + (ok ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-600 border-red-200'); };
+        if (!isReporterAuthenticated || loggedInWithMaster || !['sub', 'reporter'].includes(cloudLoginRole) || !cloudLoginSubId) { show('只有已登入的副密碼使用者可以修改自己的密碼。', false); return; }
+        if (oldPassword !== cloudLoginPassword) { show('目前副密碼不正確。', false); return; }
+        if (!newPassword) { show('新副密碼不可空白。', false); return; }
+        if (newPassword !== confirmPassword) { show('兩次輸入的新副密碼不一致。', false); return; }
+        if (newPassword === oldPassword) { show('新副密碼不可與目前密碼相同。', false); return; }
+        try {
+            const response = await fetch(CLOUD_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'change_own_sub_password', password: oldPassword, newPassword }) });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || result.error || result.ok === false) throw new Error(result.error || '更新副密碼失敗。');
+            cloudLoginPassword = newPassword;
+            document.getElementById('ownSubPwdOld').value = '';
+            document.getElementById('ownSubPwdNew').value = '';
+            document.getElementById('ownSubPwdConfirm').value = '';
+            show('副密碼已更新成功。下次請使用新密碼登入。', true);
+            alert('副密碼已更新成功！');
+        } catch (error) { show('更新失敗：' + (error.message || '未知錯誤'), false); }
+    }
+
+    async function handleChangeMasterPassword(e) {
+        e.preventDefault();
+
+        const oldVal = document.getElementById('pwdMasterOld').value;
+        const newVal = document.getElementById('pwdMasterNew').value;
+        const confirmVal = document.getElementById('pwdMasterConfirm').value;
+        const msg = document.getElementById('pwdMasterMsg');
+
+        function showPasswordMessage(text, success) {
+            msg.className = success
+                ? "text-xs p-2 rounded border bg-green-50 text-green-700 border-green-200"
+                : "text-xs p-2 rounded border bg-red-50 text-red-600 border-red-200";
+            msg.innerText = text;
+            msg.classList.remove('hidden');
+        }
+
+        if (!isReporterAuthenticated || !cloudLoginPassword) {
+            showPasswordMessage('請先登入後台！', false);
+            return;
+        }
+
+        if (!loggedInWithMaster || cloudLoginRole !== 'master') {
+            showPasswordMessage('只有主密碼登入者才能修改主密碼！', false);
+            return;
+        }
+
+        if (newVal !== confirmVal) {
+            showPasswordMessage('兩次輸入的新主密碼不一致！', false);
+            return;
+        }
+
+        if (!newVal) {
+            showPasswordMessage('新密碼不可為空白！', false);
+            return;
+        }
+
+        if (oldVal !== cloudLoginPassword) {
+            showPasswordMessage('目前密碼與登入密碼不一致！', false);
+            return;
+        }
+
+        try {
+            const response = await fetch(CLOUD_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'change_master',
+                    password: cloudLoginPassword,
+                    newPassword: newVal
+                })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || result.error || result.ok === false) {
+                throw new Error(result.error || '雲端主密碼更新失敗');
+            }
+
+            cloudLoginPassword = newVal;
+            cloudLoginRole = 'master';
+            loggedInWithMaster = true;
+            localStorage.setItem('kenting_reporter_pwd', newVal);
+
+            showPasswordMessage('主密碼已成功更新！', true);
+            document.getElementById('pwdMasterOld').value = '';
+            document.getElementById('pwdMasterNew').value = '';
+            document.getElementById('pwdMasterConfirm').value = '';
+        } catch (error) {
+            console.error('主密碼更新失敗：', error);
+            showPasswordMessage('更新失敗：' + (error.message || '無法連接雲端，請稍後再試。'), false);
+        }
+    }
+
+    async function handleAddSubPassword(e) {
+        e.preventDefault();
+        const input = document.getElementById('newSubPwdInput');
+        const newSubPwd = input.value.trim();
+
+        if (!newSubPwd) {
+            alert('請輸入副密碼！');
+            return;
+        }
+        if (!isReporterAuthenticated || !cloudLoginPassword) {
+            alert('請先登入後台！');
+            return;
+        }
+        if (!loggedInWithMaster || cloudLoginRole !== 'master') {
+            alert('只有主密碼登入者才能新增副密碼！');
+            return;
+        }
+
+        try {
+            const response = await fetch(CLOUD_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'add_sub',
+                    password: cloudLoginPassword,
+                    newPassword: newSubPwd
+                })
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || result.error || result.ok === false) {
+                throw new Error(result.error || result.message || `新增失敗（HTTP ${response.status}）`);
+            }
+            if (!result.state || !Array.isArray(result.state.subPasswords)) {
+                throw new Error('後端未回傳最新副密碼清單。');
+            }
+
+            // 後端回傳的是 {id, label}，不是副密碼明文；以伺服器清單為準。
+            subPasswordsData = result.state.subPasswords;
+            saveSubPasswordsData();
+            renderSubPasswordList();
+            input.value = '';
+            alert('副密碼已成功新增並同步清單！');
+        } catch (error) {
+            console.error('新增副密碼失敗：', error);
+            alert('新增副密碼失敗：' + (error.message || '未知錯誤'));
+        }
+    }
+
+    async function deleteSubPassword(subId) {
+        if (!isReporterAuthenticated || !cloudLoginPassword) {
+            alert('請先登入後台！');
+            return;
+        }
+        if (!loggedInWithMaster || cloudLoginRole !== 'master') {
+            alert('只有主密碼登入者可以刪除副密碼！');
+            return;
+        }
+        const id = String(subId || '').trim();
+        if (!id) {
+            alert('找不到這組副密碼的識別碼，請重新整理清單後再試。');
+            return;
+        }
+        if (!confirm('確定要刪除這組副密碼嗎？')) return;
+
+        try {
+            const response = await fetch(CLOUD_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'delete_sub',
+                    password: cloudLoginPassword,
+                    subId: id
+                })
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || result.error || result.ok === false) {
+                throw new Error(result.error || result.message || `刪除失敗（HTTP ${response.status}）`);
+            }
+            if (!result.state || !Array.isArray(result.state.subPasswords)) {
+                throw new Error('後端未回傳最新副密碼清單。');
+            }
+
+            subPasswordsData = result.state.subPasswords;
+            saveSubPasswordsData();
+            renderSubPasswordList();
+            alert('副密碼已成功刪除！');
+        } catch (error) {
+            console.error('刪除副密碼失敗：', error);
+            alert('刪除失敗：' + (error.message || '未知錯誤'));
+        }
+    }
+
+    function renderSubPasswordList() {
+        const container = document.getElementById('subPasswordListContainer');
+        const info = document.getElementById('subPwdCountInfo');
+        if (!container || !info) return;
+        if (!loggedInWithMaster || cloudLoginRole !== 'master') {
+            container.replaceChildren();
+            info.textContent = '';
+            return;
+        }
+        const items = Array.isArray(subPasswordsData) ? subPasswordsData : [];
+        info.textContent = `共 ${items.length} 組副密碼`;
+        container.replaceChildren();
+        if (!items.length) {
+            const empty = document.createElement('p');
+            empty.className = 'text-xs text-slate-400 italic py-2';
+            empty.textContent = '目前尚無任何副密碼';
+            container.appendChild(empty);
+            return;
+        }
+        items.forEach((item, index) => {
+            const id = item && typeof item === 'object' ? String(item.id || '') : '';
+            const label = item && typeof item === 'object' ? (item.label || `副密碼 ${index + 1}`) : `副密碼 ${index + 1}`;
+            const accountType = item && typeof item === 'object' && item.accountType === 'self_media_creator' ? 'self_media_creator' : 'official_reporter';
+            const row = document.createElement('div');
+            row.className = 'flex flex-col sm:flex-row sm:items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-2 rounded-lg text-xs';
+            const top = document.createElement('div');
+            top.className = 'flex items-center justify-between gap-2';
+            const name = document.createElement('span');
+            name.className = 'font-bold text-amber-900';
+            name.textContent = label;
+            const badge = document.createElement('span');
+            badge.className = 'text-[10px] px-2 py-1 rounded-full ' + (accountType === 'self_media_creator' ? 'bg-purple-100 text-purple-800' : 'bg-sky-100 text-sky-800');
+            badge.textContent = accountType === 'self_media_creator' ? '自媒體創作者' : '官方記者';
+            top.append(name, badge);
+            row.appendChild(top);
+            const controls = document.createElement('div');
+            controls.className = 'flex items-center gap-2';
+            const select = document.createElement('select');
+            select.className = 'flex-1 border rounded px-2 py-1 bg-white';
+            select.innerHTML = '<option value="official_reporter">官方記者</option><option value="self_media_creator">自媒體創作者</option>';
+            select.value = accountType;
+            select.disabled = !loggedInWithMaster || !id;
+            select.addEventListener('change', () => setSubPasswordAccountType(id, select.value));
+            const rename = document.createElement('button');
+            rename.type = 'button';
+            rename.className = 'text-blue-700 font-bold px-2 py-1 whitespace-nowrap';
+            rename.innerHTML = '<i class="fa-solid fa-pen"></i> 命名';
+            rename.disabled = !loggedInWithMaster || !id;
+            rename.addEventListener('click', () => renameSubPassword(id, label));
+
+            const del = document.createElement('button');
+            del.type = 'button';
+            del.className = 'text-red-600 font-bold px-2 py-1 whitespace-nowrap';
+            del.innerHTML = '<i class="fa-solid fa-trash-can"></i> 刪除';
+            del.disabled = !loggedInWithMaster || !id;
+            del.addEventListener('click', () => deleteSubPassword(id));
+            controls.append(select, rename, del);
+            row.appendChild(controls);
+            if (!loggedInWithMaster) {
+                const note = document.createElement('p'); note.className = 'text-[10px] text-slate-500'; note.textContent = '只有管理員能更改此身分標籤。'; row.appendChild(note);
+            }
+            container.appendChild(row);
+        });
+    }
+
+    async function renameSubPassword(subId, currentLabel) {
+        if (!isReporterAuthenticated || !cloudLoginPassword || !loggedInWithMaster || cloudLoginRole !== 'master') {
+            alert('只有管理員可以替副密碼命名。');
+            return;
+        }
+        const newLabel = prompt('請輸入這組副密碼的名稱（例如：小明記者、校園自媒體）：', currentLabel || '');
+        if (newLabel === null) return;
+        const label = newLabel.trim();
+        if (!label) { alert('名稱不可空白。'); return; }
+        if (label.length > 40) { alert('名稱最多 40 個字元。'); return; }
+        try {
+            const response = await fetch(CLOUD_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'set_sub_label', password: cloudLoginPassword, subId, label })
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || result.error || result.ok === false || !result.state || !Array.isArray(result.state.subPasswords)) {
+                throw new Error(result.error || result.message || `命名失敗（HTTP ${response.status}）`);
+            }
+            subPasswordsData = result.state.subPasswords;
+            saveSubPasswordsData();
+            renderSubPasswordList();
+            alert('副密碼名稱已更新！');
+        } catch (error) {
+            console.error('設定副密碼名稱失敗：', error);
+            alert('命名失敗：' + (error.message || '未知錯誤'));
+            renderSubPasswordList();
+        }
+    }
+
+    async function setSubPasswordAccountType(subId, accountType) {
+        if (!loggedInWithMaster || cloudLoginRole !== 'master') { alert('只有管理員可以設定副密碼身分。'); renderSubPasswordList(); return; }
+        if (!['official_reporter', 'self_media_creator'].includes(accountType)) { alert('無效的身分標籤。'); renderSubPasswordList(); return; }
+        try {
+            const response = await fetch(CLOUD_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'set_sub_role', password: cloudLoginPassword, subId, accountType }) });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || result.error || !result.state || !Array.isArray(result.state.subPasswords)) throw new Error(result.error || '更新副密碼身分失敗。');
+            subPasswordsData = result.state.subPasswords;
+            saveSubPasswordsData();
+            renderSubPasswordList();
+            alert('副密碼身分標籤已更新。');
+        } catch (error) {
+            console.error('設定副密碼身分失敗：', error);
+            alert('設定失敗：' + (error.message || '未知錯誤'));
+            renderSubPasswordList();
+        }
+    }
+
+    function saveSubPasswordsData() {
+        localStorage.setItem('kenting_reporter_sub_pwds', JSON.stringify(subPasswordsData));
+    }
+
+    function handleKeywordSearch() {
+        currentSearchKeyword = document.getElementById('keywordSearch').value.trim();
+        renderNews();
+    }
+
+    function resetSearch() {
+        document.getElementById('keywordSearch').value = '';
+        currentSearchKeyword = '';
+        renderNews();
+    }
+
+    function navigateHome() {
+        resetSearch();
+        switchTab('reader');
+        filterCategory('主頁');
+    }
+
+    function refreshPage() {
+        renderNews();
+    }
+
+    async function saveNewsData() {
+        localStorage.setItem('kenting_news_data', JSON.stringify(newsData));
+
+        if (!isReporterAuthenticated || !cloudLoginPassword) {
+            return;
+        }
+
+        try {
+            const response = await fetch(CLOUD_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'save_news',
+                    password: cloudLoginPassword,
+                    news: newsData
+                })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || '雲端儲存失敗');
+            }
+
+            cloudRevision = result.revision || cloudRevision;
+        } catch (error) {
+            console.error('新聞雲端同步失敗：', error);
+            throw error;
+        }
+    }
+
+    function getDefaultImage(cat) {
+        return 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80';
+    }
+
+    initAdEditor();
+</script>
+
+</body>
+</html>
